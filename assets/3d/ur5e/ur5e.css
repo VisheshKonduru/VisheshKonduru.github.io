@@ -1,0 +1,23 @@
+/* UR5e dynamics demo. Inherits type and colour from the page (ui-b tokens, with fallbacks). */
+.u5 { --u5-ink: var(--ink, #16171a); --u5-ink2: var(--ink-2, #3d4047); --u5-ink3: var(--ink-3, #5f646c); --u5-rule: var(--rule, #dedad2); --u5-mark: var(--mark, #0f8b8d); color: var(--u5-ink); font: inherit; margin: 40px 0 8px; }
+.u5 button, .u5 select { font: inherit; color: var(--u5-ink); background: none; border: 0; padding: 0 10px; min-height: 44px; min-width: 44px; cursor: pointer; border-radius: 2px; }
+.u5 select { padding: 0 6px; text-decoration: underline; text-decoration-color: var(--u5-rule); text-underline-offset: 6px; }
+.u5 button[aria-pressed="true"], .u5 button[aria-expanded="true"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; text-decoration-color: var(--u5-mark); font-weight: 600; }
+.u5 button:hover, .u5 select:hover { color: var(--u5-mark); }
+.u5 button:focus-visible, .u5 select:focus-visible, .u5-view:focus-visible { outline: 2px solid var(--u5-ink); outline-offset: 2px; }
+.u5-view { position: relative; aspect-ratio: 16 / 10; min-height: 300px; background: var(--frame, #eeebe4); border-radius: 2px; touch-action: none; overflow: hidden; }
+.u5-view canvas { display: block; width: 100%; height: 100%; }
+.u5-loading { position: absolute; inset: 45% 0 auto; text-align: center; color: var(--u5-ink2); margin: 0; }
+.u5-line { display: flex; flex-wrap: wrap; align-items: center; margin: 4px 0 0 -10px; }
+.u5-sep { width: 1px; height: 20px; background: var(--u5-rule); margin: 0 8px; }
+.u5-line label { padding-left: 10px; color: var(--u5-ink2); }
+.u5-status { min-height: 1.55em; margin: 2px 0 0; color: var(--u5-ink); }
+.u5-plot { display: block; width: 100%; max-width: 480px; height: 72px; margin-top: 6px; }
+.u5-plotcap { margin: 0; color: var(--u5-ink2); font-size: 15px; }
+.u5-details { margin-top: 8px; font-variant-numeric: tabular-nums; }
+.u5-details table { border-collapse: collapse; font-size: 15px; }
+.u5-details th, .u5-details td { text-align: right; padding: 2px 12px 2px 0; font-weight: 400; }
+.u5-details th { color: var(--u5-ink2); border-bottom: 1px solid var(--u5-rule); }
+.u5-details td:first-child, .u5-details th:first-child { text-align: left; }
+.u5-details p { margin: 6px 0; font-size: 15px; }
+.u5 [hidden] { display: none !important; }

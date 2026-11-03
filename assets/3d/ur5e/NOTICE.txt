@@ -1,0 +1,42 @@
+UR5e dynamics demo: sources
+
+1. Robot model (kinematics, inertials, limits, meshes)
+   Universal_Robots_ROS2_Description, Universal Robots A/S and contributors
+   https://github.com/UniversalRobots/Universal_Robots_ROS2_Description
+   Commit 0eb1a861f7772fceb38510d90fa2f98ec668070c (retrieved 2026-11-03)
+   License: BSD-3-Clause, copied in LICENSE-ur_description.txt
+   Files used:
+     config/ur5e/default_kinematics.yaml   joint origins        -> ur5e-model.js JOINTS
+     config/ur5e/physical_parameters.yaml  masses, COM, inertia -> ur5e-model.js LINKS
+     config/ur5e/joint_limits.yaml         effort and velocity  -> ur5e-model.js TAU_MAX, QD_MAX
+     config/ur5e/visual_parameters.yaml    mesh offsets         -> tools/build_glb.py
+     urdf/ur_macro.xacro                   how the above are assembled
+     meshes/ur5e/visual/*.dae              visual meshes        -> ur5e.glb
+   Local copy: C:\VK\Resume\portfolio\_incoming\cad\ur5e\src
+
+   ur5e.glb is a modified version of those meshes: the visual offsets are baked
+   into each link frame, parts are merged per material colour, and the faces are
+   reduced from 121,789 to 37,331 by quadric decimation (trimesh +
+   fast_simplification). Built by tools/build_glb.py.
+
+2. DH table used only to verify the PoE model (test_ur5e.mjs)
+   Universal Robots, "DH parameters for calculations of kinematics and dynamics"
+   https://www.universal-robots.com/articles/ur/application-installation/dh-parameters-for-calculations-of-kinematics-and-dynamics/
+   (also the reference cited inside physical_parameters.yaml)
+
+3. Joint limits as cited by joint_limits.yaml
+   Universal Robots e-Series User Manual, UR5e, version 5.8
+   Universal Robots support article "Max. joint torques"
+
+4. Methods
+   Product of exponentials, space Jacobian, manipulability, damped least squares IK,
+   recursive Newton-Euler, forward dynamics: RBE 501 (WPI) course notes and notation.
+   The same formulation is published in K. M. Lynch and F. C. Park, Modern Robotics,
+   Cambridge University Press, 2017.
+   PD, PD with gravity compensation, feedback linearization (computed torque): RBE 502 (WPI).
+   RRT-Connect: J. J. Kuffner and S. M. LaValle, "RRT-Connect: An efficient approach to
+   single-query path planning," IEEE ICRA 2000.
+   Quintic time scaling: RBE 501 lecture 19.
+
+5. Runtime library
+   three.js 0.170.0 (MIT), loaded from cdn.jsdelivr.net.
