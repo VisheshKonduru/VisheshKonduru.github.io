@@ -111,7 +111,7 @@ async function start(root, ui) {
   // ?shot: drive frames with timers (headless screenshots throttle requestAnimationFrame).
   const raf = params.has('shot') ? (f) => setTimeout(() => f(performance.now()), 33) : (f) => requestAnimationFrame(f);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: false });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: params.has('shot') });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
@@ -656,9 +656,13 @@ async function start(root, ui) {
     tableMat.color.set(dark.matches ? 0x3b3833 : 0xcfc6b6); dirty = true;
   }
   dark.addEventListener('change', applyTheme); applyTheme();
-  function resize() { const w = ui.view.clientWidth, h = ui.view.clientHeight; renderer.setSize(w, h, false); view.aspect = w / h; view.updateProjectionMatrix(); dirty = true; }
+  function resize() { const w = ui.view.clientWidth, h = ui.view.clientHeight;  renderer.setSize(w, h, false); view.aspect = w / h; view.updateProjectionMatrix(); dirty = true; }
   new ResizeObserver(resize).observe(ui.view); resize();
   controls.addEventListener('change', () => { dirty = true; });
+  // ?shot only: headless Edge does not always composite the WebGL canvas in long pages, so the
+  // frame is mirrored into a 2D canvas for screenshots. Not used in normal viewing.
+  const mirror = params.has('shot') ? el('canvas', { style: 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none' }) : null;
+  if (mirror) ui.view.append(mirror);
   let visible = true, running = false, lastCam = 0;
   new IntersectionObserver((es) => { visible = es[0].isIntersecting; kick(); }).observe(root);
   document.addEventListener('visibilitychange', kick);
@@ -667,7 +671,7 @@ async function start(root, ui) {
     if (!visible || document.hidden) { running = false; return; }
     controls.update();
     if (t - lastCam > 80) { lastCam = t; process(); }          // camera pipeline at ~12 Hz
-    if (dirty) { renderer.render(scene, view); dirty = false; }
+    if (dirty) { renderer.render(scene, view); dirty = false; if (mirror) { mirror.width = renderer.domElement.width; mirror.height = renderer.domElement.height; mirror.getContext('2d').drawImage(renderer.domElement, 0, 0); } }
     raf(loop);
   }
   defaultBalls(); setCal(cal, calInfo); kick();
