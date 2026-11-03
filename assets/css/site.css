@@ -10,7 +10,7 @@
   --accent: #1f5fae;
   --measure: 62ch;
   --wide: 1240px;
-  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --serif: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
   --sans: "Source Sans 3", -apple-system, "Segoe UI", Roboto, sans-serif;
   --pad: clamp(20px, 4vw, 56px);
 }
@@ -42,14 +42,14 @@ a:hover { text-decoration-thickness: 2px; }
 .edge { padding-left: var(--pad); padding-right: var(--pad); }
 
 /* ---------- type ---------- */
-h1, h2, h3 { font-family: var(--serif); font-weight: 400; letter-spacing: -0.01em; line-height: 1.15; color: var(--ink); font-optical-sizing: auto; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -0.022em; line-height: 1.15; color: var(--ink); font-optical-sizing: auto; }
 h1 { font-size: clamp(40px, 5.6vw, 64px); line-height: 1.05; margin: 0 0 24px; }
 h2 { font-size: clamp(28px, 3.2vw, 40px); margin: 0 0 16px; }
 h3 { font-size: 20px; font-weight: 600; margin: 40px 0 8px; }
 p { margin: 0 0 16px; }
 strong { font-weight: 600; }
 .label { font: 600 13px/1.4 var(--sans); letter-spacing: 0.08em; font-variant-caps: all-small-caps; font-size: 16px; color: var(--ink-2); margin: 8px 0 0; }
-.lede { font: 400 clamp(20px, 2.2vw, 25px)/1.5 var(--serif); color: var(--ink-2); max-width: 44ch; }
+.lede { font: 500 clamp(20px, 2.2vw, 25px)/1.5 var(--serif); color: var(--ink-2); max-width: 44ch; }
 .prose { max-width: var(--measure); }
 .prose ul { padding-left: 24px; }
 
@@ -82,7 +82,7 @@ body:has(.hero) .site-head.solid .site-nav a[aria-current="page"] { color: var(-
 .hero-shade::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 160px; background: linear-gradient(to bottom, rgba(13,14,16,0), rgba(13,14,16,.55)); }
 .hero-body { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 40px; }
 .hero-lockup { display: flex; flex-direction: column; align-items: center; text-align: center; max-width: 100%; }
-.hero-name { font: 400 clamp(44px, 7.4vw, 96px)/1.05 var(--serif); letter-spacing: -0.02em; margin: 0 0 16px; color: #fff; text-align: center; }
+.hero-name { font: 600 clamp(44px, 7.4vw, 96px)/1.05 var(--serif); letter-spacing: -0.02em; margin: 0 0 16px; color: #fff; text-align: center; }
 .hero-block { display: flex; flex-direction: row; justify-content: center; align-items: flex-start; gap: 64px; }
 .hero-block > div { display: flex; flex-direction: column; align-items: center; text-align: center; font-size: 18px; line-height: 1.4; color: #fff; }
 .hero-block span + span { color: rgba(255,255,255,.88); }
@@ -102,7 +102,7 @@ body:has(.hero) .site-head.solid .site-nav a[aria-current="page"] { color: var(-
   padding: 40px 0; border-bottom: 1px solid var(--rule); color: inherit; text-decoration: none;
 }
 .entry-media { display: flex; justify-content: flex-start; }
-.entry h3 { font-size: clamp(28px, 2.4vw, 32px); font-weight: 400; line-height: 1.12; margin: 0 0 16px; }
+.entry h3 { font-size: clamp(26px, 2.2vw, 30px); font-weight: 600; line-height: 1.12; margin: 0 0 16px; }
 .entry:hover h3 { color: var(--accent); }
 .entry p { color: var(--ink-2); margin: 0; max-width: 58ch; font-size: 18px; }
 .entry-img { width: auto; max-width: 100%; height: auto; max-height: 240px; background: var(--frame); border-radius: 2px; }
@@ -117,7 +117,7 @@ body:has(.hero) .site-head.solid .site-nav a[aria-current="page"] { color: var(-
 .rows { border-top: 1px solid var(--ink); }
 .row { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 40px; padding: 24px 0; border-bottom: 1px solid var(--rule); }
 .row .when { font-size: 16px; color: var(--ink-2); padding-top: 3px; }
-.row strong { font: 400 22px/1.3 var(--serif); }
+.row strong { font: 500 22px/1.3 var(--serif); }
 .row p { margin: 4px 0 0; color: var(--ink-2); }
 
 /* ---------- project page ---------- */
@@ -166,10 +166,10 @@ figcaption { font-size: 15px; line-height: 1.5; color: var(--ink-2); padding-top
 .facts dd { margin: 0; }
 .numbers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin: 8px 0 24px; }
 .numbers div { border-top: 1px solid var(--ink); padding-top: 8px; }
-.numbers strong { display: block; font: 400 40px/1.2 var(--serif); }
+.numbers strong { display: block; font: 500 40px/1.2 var(--serif); }
 .numbers span { font-size: 15px; color: var(--ink-2); }
 
-.pager { display: flex; justify-content: space-between; gap: 16px; font: 400 20px/1.3 var(--serif); }
+.pager { display: flex; justify-content: space-between; gap: 16px; font: 500 20px/1.3 var(--serif); }
 .pager a { color: var(--ink); text-decoration: none; }
 .pager a:hover { color: var(--accent); }
 
@@ -182,7 +182,7 @@ figcaption { font-size: 15px; line-height: 1.5; color: var(--ink-2); padding-top
 .journey-head { padding-top: 64px; padding-bottom: 64px; }
 .timeline { display: grid; }
 .stop { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 64px; padding: 64px 0; border-top: 1px solid var(--rule); }
-.stop .year { font: 400 96px/1 var(--serif); letter-spacing: -0.01em; font-variant-numeric: lining-nums tabular-nums; color: var(--ink); position: sticky; top: 96px; align-self: start; font-variant-numeric: lining-nums; }
+.stop .year { font: 500 96px/1 var(--serif); letter-spacing: -0.01em; font-variant-numeric: lining-nums tabular-nums; color: var(--ink); position: sticky; top: 96px; align-self: start; font-variant-numeric: lining-nums; }
 .stop h2 { margin-bottom: 8px; }
 .stop .sub { color: var(--ink-2); font-size: 18px; margin: 0 0 16px; }
 .stop .sub:empty { display: none; }
@@ -279,7 +279,7 @@ body:has(.hero) .site-head { transition: background .25s ease-out, border-color 
 .top-links a { display: inline-flex; align-items: center; min-height: 44px; }
 .size { color: var(--ink-2); font-size: .9em; }
 .pager { display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 24px; font-size: 18px; }
-.pager a { display: block; min-height: 44px; font: 400 18px/1.35 var(--serif); }
+.pager a { display: block; min-height: 44px; font: 500 18px/1.35 var(--serif); }
 .pager a span { display: block; font: 600 16px/1.6 var(--sans); font-variant-caps: all-small-caps; letter-spacing: 0.08em; color: var(--ink-2); }
 .pager a:last-child { text-align: right; }
 .pager .back { font-family: var(--sans); padding-top: 24px; }
