@@ -98,8 +98,7 @@ export function start(stage) {
       wallMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), wallMat, m.walls.length);
       const mat = new THREE.Matrix4();
       m.walls.forEach((wl, i) => {
-        mat.makeScale(wl.x1 - wl.x0, wl.y1 - wl.y0, m.height);
-        mat.setPosition((wl.x0 + wl.x1) / 2, (wl.y0 + wl.y1) / 2, m.height / 2);
+        mat.compose(new THREE.Vector3(wl.cx, wl.cy, m.height / 2), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), wl.ang), new THREE.Vector3(wl.len, wl.thick, m.height));
         wallMesh.setMatrixAt(i, mat);
       });
       wallMesh.castShadow = wallMesh.receiveShadow = true;
@@ -291,7 +290,7 @@ export function start(stage) {
   dark.addEventListener('change', applyTheme);
 
   function resetCamera() {
-    const c = W().maze.size / 2, tgt = new THREE.Vector3(c, 0, -c);
+    const mz = W().maze, tgt = new THREE.Vector3(mz.sizeX / 2, 0, -mz.sizeY / 2);
     const polar = THREE.MathUtils.degToRad(55), az = THREE.MathUtils.degToRad(-35), dist = 7.4;
     camera.position.set(tgt.x + dist * Math.sin(polar) * Math.sin(az), dist * Math.cos(polar), tgt.z + dist * Math.sin(polar) * Math.cos(az));
     controls.target.copy(tgt); controls.update();

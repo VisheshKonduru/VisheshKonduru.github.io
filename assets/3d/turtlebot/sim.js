@@ -37,62 +37,127 @@ function gauss(r) {
 }
 
 // ---- Maze -----------------------------------------------------------------
-// Perfect maze by randomised DFS, then a few extra openings so loops exist.
-export function makeMaze(seed, n = 7, cell = 0.6, thick = 0.10, height = 0.25) {
-  const r = rng(seed);
-  // hWall[j][i]: wall on the south side of cell (i,j), j in 0..n
-  // vWall[j][i]: wall on the west side of cell (i,j), i in 0..n
+// Walls are oriented boxes: {cx, cy, len, thick, ang, poly: 4 corners}.
+function wallBox(cx, cy, len, thick, ang) {
+  const c = Math.cos(ang), s = Math.sin(ang), hl = len / 2, ht = thick / 2;
+  const poly = [[-hl, -ht], [hl, -ht], [hl, ht], [-hl, ht]].map(([u, v]) => [cx + c * u - s * v, cy + s * u + c * v]);
+  return { cx, cy, len, thick, ang, poly };
+}
+const wallRect = (x0, y0, x1, y1) => wallBox((x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0, 0);
+
+// Randomised DFS maze on a grid with uneven row and column widths, plus loops, two
+// open rooms (one with a pillar, one with an angled wall across a corner) and short
+// wall stubs in wide cells, so places look less alike to a 2D scan.
+export function buildMaze(seed, n = 7, thick = 0.10, height = 0.25) {
+  const r = rng(seed), pick = a => a[Math.floor(r() * a.length)];
+  const widths = () => { const w = Array.from({ length: n }, () => pick([0.5, 0.55, 0.6, 0.7, 0.8])); const xs = [0]; for (const v of w) xs.push(xs[xs.length - 1] + v); return { w, xs }; };
+  const C = widths(), R = widths(), xs = C.xs, ys = R.xs;
   const hWall = Array.from({ length: n + 1 }, () => Array(n).fill(true));
   const vWall = Array.from({ length: n }, () => Array(n + 1).fill(true));
   const seen = Array.from({ length: n }, () => Array(n).fill(false));
-  const stack = [[0, 0]];
-  seen[0][0] = true;
+  const stack = [[0, 0]]; seen[0][0] = true;
   while (stack.length) {
-    const [i, j] = stack[stack.length - 1];
-    const nb = [];
+    const [i, j] = stack[stack.length - 1], nb = [];
     if (i > 0 && !seen[j][i - 1]) nb.push([i - 1, j, 'W']);
     if (i < n - 1 && !seen[j][i + 1]) nb.push([i + 1, j, 'E']);
     if (j > 0 && !seen[j - 1][i]) nb.push([i, j - 1, 'S']);
     if (j < n - 1 && !seen[j + 1][i]) nb.push([i, j + 1, 'N']);
     if (!nb.length) { stack.pop(); continue; }
-    const [a, b, d] = nb[Math.floor(r() * nb.length)];
+    const [a, b, d] = pick(nb);
     if (d === 'W') vWall[j][i] = false;
     if (d === 'E') vWall[j][i + 1] = false;
     if (d === 'S') hWall[j][i] = false;
     if (d === 'N') hWall[j + 1][i] = false;
-    seen[b][a] = true;
-    stack.push([a, b]);
+    seen[b][a] = true; stack.push([a, b]);
   }
-  for (let k = 0; k < 5; k++) {
-    if (r() < 0.5) { const j = 1 + Math.floor(r() * (n - 1)), i = Math.floor(r() * n); hWall[j][i] = false; }
-    else { const i = 1 + Math.floor(r() * (n - 1)), j = Math.floor(r() * n); vWall[j][i] = false; }
+  for (let k = 0; k < 4; k++) {
+    if (r() < 0.5) hWall[1 + Math.floor(r() * (n - 1))][Math.floor(r() * n)] = false;
+    else vWall[Math.floor(r() * n)][1 + Math.floor(r() * (n - 1))] = false;
   }
-  // Merge collinear runs into long boxes.
-  const walls = []; // {x0,y0,x1,y1} axis-aligned rectangles
-  const h = thick / 2;
-  for (let j = 0; j <= n; j++) {
-    let i = 0;
-    while (i < n) {
-      if (!hWall[j][i]) { i++; continue; }
-      let k = i; while (k < n && hWall[j][k]) k++;
-      walls.push({ x0: i * cell - h, x1: k * cell + h, y0: j * cell - h, y1: j * cell + h });
-      i = k;
+  // two 2x2 rooms, apart from each other and from the start cell
+  const rooms = [];
+  for (let tries = 0; rooms.length < 2 && tries < 50; tries++) {
+    const i = Math.floor(r() * (n - 1)), j = Math.floor(r() * (n - 1));
+    if (i + j < 2 || rooms.some(q => Math.abs(q.i - i) < 3 && Math.abs(q.j - j) < 3)) continue;
+    hWall[j + 1][i] = hWall[j + 1][i + 1] = vWall[j][i + 1] = vWall[j + 1][i + 1] = false;
+    rooms.push({ i, j });
+  }
+  const walls = [], h = thick / 2;
+  for (let j = 0; j <= n; j++) for (let i = 0; i < n;) {
+    if (!hWall[j][i]) { i++; continue; }
+    let k = i; while (k < n && hWall[j][k]) k++;
+    walls.push(wallRect(xs[i] - h, ys[j] - h, xs[k] + h, ys[j] + h)); i = k;
+  }
+  for (let i = 0; i <= n; i++) for (let j = 0; j < n;) {
+    if (!vWall[j][i]) { j++; continue; }
+    let k = j; while (k < n && vWall[k][i]) k++;
+    walls.push(wallRect(xs[i] - h, ys[j] - h, xs[i] + h, ys[k] + h)); j = k;
+  }
+  rooms.forEach((q, idx) => {
+    const cx = xs[q.i + 1], cy = ys[q.j + 1];
+    if (idx === 0) walls.push(wallRect(cx - 0.08, cy - 0.08, cx + 0.08, cy + 0.08)); // pillar
+    else { // angled wall across one room corner
+      const corner = Math.floor(r() * 4), x0 = corner & 1 ? xs[q.i + 2] : xs[q.i], y0 = corner & 2 ? ys[q.j + 2] : ys[q.j];
+      const sx = corner & 1 ? -1 : 1, sy = corner & 2 ? -1 : 1, L = 0.42;
+      const ax = x0 + sx * L, ay = y0, bx = x0, by = y0 + sy * L;
+      walls.push(wallBox((ax + bx) / 2, (ay + by) / 2, Math.hypot(ax - bx, ay - by) + thick, thick, Math.atan2(by - ay, bx - ax)));
     }
-  }
-  for (let i = 0; i <= n; i++) {
-    let j = 0;
-    while (j < n) {
-      if (!vWall[j][i]) { j++; continue; }
-      let k = j; while (k < n && vWall[k][i]) k++;
-      walls.push({ x0: i * cell - h, x1: i * cell + h, y0: j * cell - h, y1: k * cell + h });
-      j = k;
-    }
+  });
+  // stubs: 0.2 m into cells at least 0.8 m wide across the stub
+  let stubs = 0;
+  for (let tries = 0; stubs < 3 && tries < 60; tries++) {
+    const i = Math.floor(r() * n), j = Math.floor(r() * n);
+    if (rooms.some(q => i >= q.i && i <= q.i + 1 && j >= q.j && j <= q.j + 1)) continue;
+    const mx = (xs[i] + xs[i + 1]) / 2, my = (ys[j] + ys[j + 1]) / 2;
+    if (vWall[j][i] && C.w[i] >= 0.8) { walls.push(wallRect(xs[i], my - h, xs[i] + 0.2 + h, my + h)); stubs++; }
+    else if (hWall[j][i] && R.w[j] >= 0.8) { walls.push(wallRect(mx - h, ys[j], mx + h, ys[j] + 0.2 + h)); stubs++; }
   }
   const segs = [];
-  for (const w of walls) {
-    segs.push([w.x0, w.y0, w.x1, w.y0], [w.x1, w.y0, w.x1, w.y1], [w.x1, w.y1, w.x0, w.y1], [w.x0, w.y1, w.x0, w.y0]);
+  for (const w of walls) for (let k = 0; k < 4; k++) { const a = w.poly[k], b = w.poly[(k + 1) % 4]; segs.push([a[0], a[1], b[0], b[1]]); }
+  const center = (i, j) => [(xs[i] + xs[i + 1]) / 2, (ys[j] + ys[j + 1]) / 2];
+  return { n, thick, height, size: Math.max(xs[n], ys[n]), sizeX: xs[n], sizeY: ys[n], xs, ys, walls, segs, center, seed };
+}
+
+// Ambiguity: fraction of sampled poses whose 360-degree scan closely matches the scan
+// at some pose more than 0.8 m away (best over 5-degree rotations, mean |dr| over 36 beams).
+export function ambiguity(m, nPoses = 110, nQuery = 36, tol = 0.15) {
+  const r = rng(m.seed * 13 + 5), P = [];
+  for (let t = 0; P.length < nPoses && t < 5000; t++) {
+    const x = r() * m.sizeX, y = r() * m.sizeY;
+    if (circleHitsWalls(m.walls, x, y, 0.12)) continue;
+    const sc = new Float32Array(72);
+    for (let k = 0; k < 72; k++) sc[k] = Math.min(3.5, castRay(m.segs, x, y, (k / 72) * 2 * Math.PI));
+    P.push({ x, y, sc });
   }
-  return { n, cell, thick, height, size: n * cell, walls, segs };
+  let amb = 0;
+  for (let q = 0; q < Math.min(nQuery, P.length); q++) {
+    const A = P[q]; let hit = false;
+    for (let p = 0; p < P.length && !hit; p++) {
+      const B = P[p]; if (Math.hypot(A.x - B.x, A.y - B.y) < 0.8) continue;
+      for (let sh = 0; sh < 72 && !hit; sh++) {
+        let d = 0; for (let k = 0; k < 72; k += 2) d += Math.abs(A.sc[k] - B.sc[(k + sh) % 72]);
+        if (d / 36 < tol) hit = true;
+      }
+    }
+    if (hit) amb++;
+  }
+  return amb / Math.min(nQuery, P.length);
+}
+
+// Candidates are generated from the seed; the first that passes the ambiguity check is
+// kept, otherwise the least ambiguous of 12.
+const mazeCache = new Map();
+export function makeMaze(seed, maxAmb = 0.15) {
+  if (mazeCache.has(seed)) return mazeCache.get(seed);
+  let best = null;
+  for (let a = 0; a < 12; a++) {
+    const m = buildMaze(seed * 977 + a * 7919 + 1);
+    m.ambiguity = ambiguity(m); m.attempts = a + 1;
+    if (!best || m.ambiguity < best.ambiguity) best = m;
+    if (m.ambiguity <= maxAmb) break;
+  }
+  best.seed = seed; mazeCache.set(seed, best);
+  return best;
 }
 
 // ---- Ray casting ------------------------------------------------------------
@@ -309,8 +374,10 @@ export class Robot {
 
 export function circleHitsWalls(walls, cx, cy, r) {
   for (const w of walls) {
-    const qx = Math.max(w.x0, Math.min(cx, w.x1)), qy = Math.max(w.y0, Math.min(cy, w.y1));
-    if ((qx - cx) ** 2 + (qy - cy) ** 2 < r * r) return true;
+    const dx = cx - w.cx, dy = cy - w.cy, c = Math.cos(w.ang), s = Math.sin(w.ang);
+    const u = c * dx + s * dy, v = -s * dx + c * dy, hl = w.len / 2, ht = w.thick / 2;
+    const qu = Math.max(-hl, Math.min(u, hl)), qv = Math.max(-ht, Math.min(v, ht));
+    if ((u - qu) ** 2 + (v - qv) ** 2 < r * r) return true;
   }
   return false;
 }
@@ -339,8 +406,7 @@ export class World {
     this.seed = seed;
     this.maze = makeMaze(seed);
     this.rand = rng(seed * 7919 + 1);
-    const c = this.maze.cell;
-    this.robot = new Robot(c / 2, c / 2, 0);
+    this.robot = new Robot(...this.maze.center(0, 0), 0);
     const m = 0.25, res = 0.05, size = this.maze.size + 2 * m;
     this.grid = new OccGrid(-m, -m, Math.round(size / res), Math.round(size / res), res);
     const S = SPEC.lidar.samples;
@@ -351,7 +417,7 @@ export class World {
     this.time = 0; this.path = null; this.goal = null; this.mode = 'explore';
     this.status = 'Exploring: frontier search'; this.replanT = 0; this.blacklist = new Set();
     this.lastProgress = { t: 0, x: this.robot.x, y: this.robot.y };
-    this.finalGoal = [(this.maze.n - 0.5) * c, (this.maze.n - 0.5) * c];
+    this.finalGoal = this.maze.center(this.maze.n - 1, this.maze.n - 1);
     this.doneT = 0; this.recoverT = 0; this.fails = 0; this.retried = false; this.teleop = null; this.teleopT = -1;
   }
   scanPose() {

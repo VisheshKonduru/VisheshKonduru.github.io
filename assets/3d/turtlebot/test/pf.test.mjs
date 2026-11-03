@@ -5,7 +5,7 @@ import { LocWorld } from '../loc.js';
 const trials = +(process.argv[2] || 20), limit = +(process.argv[3] || 60), dt = 1 / 30;
 let ok = 0, wrong = 0; const times = [];
 for (let t = 0; t < trials; t++) {
-  const W = new LocWorld(3 + (t % 5)); W.auto = false; W.goal = null;
+  const W = new LocWorld(3 + (t % 10)); W.auto = false; W.goal = null;
   W.rand = (() => { let s = 1000 + t; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
   W.kidnap();
   let hit = null, falseConv = false;

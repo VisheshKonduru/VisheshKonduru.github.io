@@ -10,7 +10,7 @@ export const AMCL_PARAMS = {
   zHit: 0.8, zRand: 0.2, sigmaHit: 0.1, temper: 0.15, cellArea: 0.05, maxBeams: 30, likelihoodMaxDist: 2.0,
   minParticles: 500, maxParticles: 4000, pfErr: 0.05, pfZ: 2.326, // 99% normal quantile (amcl passes 0.99 raw)
   alphaSlow: 0.01, alphaFast: 0.3, // nav2 default is 0 (off); the amcl docs suggest these values
-  updateMinD: 0.1, updateMinA: 0.15, // amcl default 0.25 / 0.2; smaller so the demo updates often
+  updateMinD: 0.25, updateMinA: 0.2, // nav2_amcl defaults
   binXY: 0.5, binTh: (10 * Math.PI) / 180, clusterXY: 0.25,
 };
 
@@ -23,8 +23,8 @@ export function knownMap(maze, res = 0.05, margin = 0.25) {
   const g = new OccGrid(-margin, -margin, n, n, res);
   for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
     const x0 = g.originX + i * res, y0 = g.originY + j * res, k = j * n + i;
-    const occ = maze.walls.some(w => x0 < w.x1 && x0 + res > w.x0 && y0 < w.y1 && y0 + res > w.y0);
-    const insideMaze = x0 + res / 2 > 0 && x0 + res / 2 < maze.size && y0 + res / 2 > 0 && y0 + res / 2 < maze.size;
+    const occ = circleHitsWalls(maze.walls, x0 + res / 2, y0 + res / 2, res * 0.5);
+    const insideMaze = x0 + res / 2 > 0 && x0 + res / 2 < maze.sizeX && y0 + res / 2 > 0 && y0 + res / 2 < maze.sizeY;
     if (occ) { g.L[k] = 4; g.seen[k] = 1; } else if (insideMaze) { g.L[k] = -4; g.seen[k] = 1; }
   }
   return g;
@@ -209,13 +209,13 @@ export class LocWorld {
     this.robot = new Robot(0, 0, 0);
     this.kidnap(); this.goal = this.randomFree(1.5);
   }
-  freeOk(x, y) { return !circleHitsWalls(this.maze.walls, x, y, SPEC.footprint.r + 0.02) && x > 0 && y > 0 && x < this.maze.size && y < this.maze.size; }
+  freeOk(x, y) { return !circleHitsWalls(this.maze.walls, x, y, SPEC.footprint.r + 0.02) && x > 0 && y > 0 && x < this.maze.sizeX && y < this.maze.sizeY; }
   randomFree(minFrom = 0) {
     for (let k = 0; k < 500; k++) {
-      const x = this.rand() * this.maze.size, y = this.rand() * this.maze.size;
+      const x = this.rand() * this.maze.sizeX, y = this.rand() * this.maze.sizeY;
       if (this.freeOk(x, y) && Math.hypot(x - this.robot.x, y - this.robot.y) >= minFrom) return [x, y];
     }
-    return [this.maze.cell / 2, this.maze.cell / 2];
+    return this.maze.center(0, 0);
   }
   // Teleport the true robot; the filter is told nothing except "re-localize globally".
   kidnap(x, y, th) {
