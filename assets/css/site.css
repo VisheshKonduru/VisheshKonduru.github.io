@@ -10,8 +10,8 @@
   --accent: #1f5fae;
   --measure: 62ch;
   --wide: 1240px;
-  --serif: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
-  --sans: "Source Sans 3", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --serif: "Geist", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --sans: "Geist", -apple-system, "Segoe UI", Roboto, sans-serif;
   --pad: clamp(20px, 4vw, 56px);
 }
 @media (prefers-color-scheme: dark) {
@@ -107,11 +107,14 @@ body:has(.hero) .site-head.solid .site-nav a[aria-current="page"] { color: var(-
 .entry p { color: var(--ink-2); margin: 0; max-width: 58ch; font-size: 18px; }
 .entry-img { width: auto; max-width: 100%; height: auto; max-height: 240px; background: var(--frame); border-radius: 2px; }
 
-.honors { list-style: none; margin: 0 0 24px; padding: 0; }
-.honors li { font-size: 19px; line-height: 1.45; font-weight: 600; color: var(--ink); }
-.honors li::before { content: "\2014\00a0"; color: var(--ink-3); font-weight: 400; }
-.honors-card { margin: 0 0 16px; }
+.honors { list-style: none; margin: 16px 0 24px; padding: 8px 0 8px 16px; border-left: 3px solid var(--mark); }
+.honors li { font-size: 19px; line-height: 1.45; font-weight: 600; color: var(--ink); margin: 0; }
+.honors li + li { margin-top: 4px; }
+.honors a { color: inherit; text-decoration-color: var(--mark); }
+.honors-card { margin: 0 0 16px; padding: 4px 0 4px 16px; }
 .honors-card li { font-size: 17px; }
+:root { --mark: #0f8b8d; }
+@media (prefers-color-scheme: dark) { :root { --mark: #3cc3c4; } }
 
 /* ---------- rows (recognition, experience) ---------- */
 .rows { border-top: 1px solid var(--ink); }
