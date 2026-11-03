@@ -43,8 +43,9 @@ time-scaled until the joint speeds and the Newton-Euler torques stay inside the 
 a sphere is dragged across the rest of the path, the arm plans again from where it is.
 
 Figure caption:
-UR5e, simulated live from its published masses and inertias. Thin lines are the joint screw axes,
-and the teal wireframe is the tool's velocity manipulability ellipsoid. Torques come from recursive
+UR5e, simulated live from its published masses and inertias. Teal arrows S1 to S6 are the joint
+screw axes in the current pose, and the grey ellipsoid at the tool is its velocity manipulability
+ellipsoid. Torques come from recursive
 Newton-Euler. The arm moves by integrating its forward dynamics at 1 kHz under the selected
 controller.
 
@@ -67,7 +68,7 @@ Each formula is followed by where it appears in the demo.
    $$T(\theta) = e^{[\mathcal{S}_1]\theta_1}\, e^{[\mathcal{S}_2]\theta_2} \cdots e^{[\mathcal{S}_6]\theta_6}\, M$$
 
    The six screw axes $\mathcal{S}_i = (\hat\omega_i,\, -\hat\omega_i \times q_i)$ and the home pose $M$ come from the
-   UR5e joint origins. The demo draws each axis as a thin line through its joint and moves the
+   UR5e joint origins. The demo draws each axis as a labelled teal arrow through its joint and moves the
    meshes with this product every frame.
 
 2. Space Jacobian
@@ -111,8 +112,8 @@ Each formula is followed by where it appears in the demo.
    $$\ddot q = M(q)^{-1}\left(\tau + J_s^{T}\mathcal{F}_{ext} - C(q,\dot q)\dot q - g(q)\right)$$
 
    $M(q)$ is assembled column by column from Newton-Euler. The simulator integrates the second
-   line with fourth-order Runge-Kutta at 1 kHz. Push applies a 40 N force at the tool for 0.2 s
-   as $\mathcal{F}_{ext}$.
+   line with fourth-order Runge-Kutta at 1 kHz. Push applies a 60 N force at the wrist 1 joint (the end of the forearm)
+   for 0.2 s as $\mathcal{F}_{ext}$, so only joints 1 to 3 carry it.
 
 7. Controllers, with $e = q_d - q$
 
@@ -155,13 +156,13 @@ figure on the project page. It uses only the page's own headings and paragraphs:
   <h2>How it works</h2>
   <h3>Forward kinematics</h3>
   $$T(\theta) = e^{[\mathcal{S}_1]\theta_1} e^{[\mathcal{S}_2]\theta_2} \cdots e^{[\mathcal{S}_6]\theta_6} M$$
-  <p>The six screw axes and the home pose \(M\) come from the UR5e joint origins. The thin lines on the arm are these axes, and the meshes move by this product every frame.</p>
+  <p>The six screw axes and the home pose \(M\) come from the UR5e joint origins. The teal arrows S1 to S6 on the arm are these axes, and the meshes move by this product every frame.</p>
   <h3>Space Jacobian</h3>
   $$J_{si}(\theta) = \mathrm{Ad}_{e^{[\mathcal{S}_1]\theta_1}\cdots e^{[\mathcal{S}_{i-1}]\theta_{i-1}}}\,\mathcal{S}_i$$
   <p>Column \(i\) is the screw axis of joint \(i\) in the current pose.</p>
   <h3>Manipulability</h3>
   $$A = J_v J_v^{T}, \qquad \mu_3 = \sqrt{\det A}$$
-  <p>The teal ellipsoid at the tool has axes along the eigenvectors of \(A\) and half-lengths \(\sqrt{\lambda_i}\). It flattens as the arm nears a singularity.</p>
+  <p>The grey ellipsoid at the tool has axes along the eigenvectors of \(A\) and half-lengths \(\sqrt{\lambda_i}\). It flattens as the arm nears a singularity.</p>
   <h3>Inverse kinematics</h3>
   $$\Delta\theta = J^{T}\left(JJ^{T} + \lambda^{2} I\right)^{-1} \mathcal{V}$$
   <p>Damped least squares moves the tool toward the ball you drag. The damping keeps each step finite near a singularity.</p>
@@ -171,7 +172,7 @@ figure on the project page. It uses only the page's own headings and paragraphs:
   <p>The forward pass carries velocities and accelerations out to the tool, with gravity entering as \(\dot{\mathcal{V}}_0 = (0, -\mathfrak{g})\). The backward pass carries wrenches back to the base. \(\mathcal{G}_i\) holds the published mass and inertia of each link.</p>
   <h3>Equations of motion</h3>
   $$M(q)\ddot q + C(q,\dot q)\dot q + g(q) = \tau$$
-  <p>The simulator solves this for \(\ddot q\) with \(M(q)\) assembled from Newton-Euler and integrates it at 1 kHz. Push adds a 40 N force at the tool through \(J_s^{T}\mathcal{F}\).</p>
+  <p>The simulator solves this for \(\ddot q\) with \(M(q)\) assembled from Newton-Euler and integrates it at 1 kHz. Push adds a 60 N force at the end of the forearm through \(J_s^{T}\mathcal{F}\).</p>
   <h3>Controllers</h3>
   $$\tau = K_p e + K_d \dot e \qquad \tau = K_p e + K_d \dot e + g(q) \qquad \tau = M(q)(\ddot q_d + K_d\dot e + K_p e) + C(q,\dot q)\dot q + g(q)$$
   <p>PD, PD with gravity compensation, and computed torque, with \(e = q_d - q\). PD alone sags under gravity, and the error plot shows the offset that \(g(q)\) removes.</p>

@@ -24,20 +24,30 @@ export const GAINS = {
   ct:  { Kp: Array(6).fill(400), Kd: Array(6).fill(40) },
 };
 
-export function controlTorque(kind, q, qd, ref) {
+// Returns the saturated torque and its parts before saturation:
+// grav = gravity term g(q) (PD + g, computed torque), ff = model feedforward M qdd_d + C qd
+// (computed torque only; for CT this is M(q) qdd_d + h - g), fb = feedback (gains on the error).
+export function controlTorqueParts(kind, q, qd, ref) {
   const { Kp, Kd } = GAINS[kind];
   const e = ref.q.map((x, i) => x - q[i]), ed = ref.qd.map((x, i) => x - qd[i]);
-  let tau;
+  const z = [0,0,0,0,0,0];
+  let grav = z, ff = z, fb;
   if (kind === 'ct') {
-    const v = ref.qdd.map((x, i) => x + Kd[i] * ed[i] + Kp[i] * e[i]);
     const { M: Mq, h } = dynamicsMh(q, qd);
-    tau = Mq.map((r, i) => r.reduce((s, m, j) => s + m * v[j], 0) + h[i]);
+    grav = rneaFast(q, z, z);
+    const Mv = v => Mq.map(r => r.reduce((s, m, j) => s + m * v[j], 0));
+    const a = Mv(ref.qdd);
+    ff = a.map((x, i) => x + h[i] - grav[i]);
+    fb = Mv(e.map((x, i) => Kp[i] * x + Kd[i] * ed[i]));
   } else {
-    tau = e.map((x, i) => Kp[i] * x + Kd[i] * ed[i]);
-    if (kind === 'pdg') { const g = rneaFast(q, [0,0,0,0,0,0], [0,0,0,0,0,0]); tau = tau.map((t, i) => t + g[i]); }
+    fb = e.map((x, i) => Kp[i] * x + Kd[i] * ed[i]);
+    if (kind === 'pdg') grav = rneaFast(q, z, z);
   }
-  return tau.map((t, i) => Math.max(-TAU_MAX[i], Math.min(TAU_MAX[i], t)));
+  const raw = fb.map((x, i) => x + grav[i] + ff[i]);
+  const tau = raw.map((t, i) => Math.max(-TAU_MAX[i], Math.min(TAU_MAX[i], t)));
+  return { tau, grav, ff, fb, saturated: raw.some((t, i) => Math.abs(t) > TAU_MAX[i]) };
 }
+export const controlTorque = (kind, q, qd, ref) => controlTorqueParts(kind, q, qd, ref).tau;
 
 // One RK4 step of the plant with torque held constant over the step (zero-order hold).
 // tauExt = J_s^T F_ext for a disturbance wrench, held over the step.

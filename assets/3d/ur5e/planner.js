@@ -35,8 +35,12 @@ export function pathFree(path, spheres) {
   return true;
 }
 
-export function rrtConnect(qs, qg, spheres, { step = 0.25, maxIter = 4000, rng = Math.random, timeBudgetMs = 400 } = {}) {
-  if (inCollision(qs, spheres) || inCollision(qg, spheres)) return null;
+// onEdge(fromStartTree, qParent, qChild) is called for every edge added, so the trees can be drawn.
+// stats (optional object) receives nodes, iterations and the reason for a failure.
+export function rrtConnect(qs, qg, spheres, { step = 0.25, maxIter = 4000, rng = Math.random, timeBudgetMs = 400, onEdge = null, stats = {} } = {}) {
+  stats.nodes = 2; stats.iters = 0; stats.reason = null;
+  if (inCollision(qs, spheres)) { stats.reason = 'start'; return null; }
+  if (inCollision(qg, spheres)) { stats.reason = 'goal'; return null; }
   if (edgeFree(qs, qg, spheres)) return [qs, qg];
   const t0 = Date.now();
   let Ta = [{ q: qs, p: -1 }], Tb = [{ q: qg, p: -1 }], swapped = false;
@@ -45,11 +49,13 @@ export function rrtConnect(qs, qg, spheres, { step = 0.25, maxIter = 4000, rng =
   const extend = (T, q) => {   // returns 'reached' | 'advanced' | 'trapped'
     const ni = nearest(T, q), qn = steer(T[ni].q, q);
     if (!edgeFree(T[ni].q, qn, spheres)) return 'trapped';
-    T.push({ q: qn, p: ni });
+    T.push({ q: qn, p: ni }); stats.nodes++;
+    if (onEdge) onEdge((T === Ta) !== swapped, T[ni].q, qn);
     return qn === q ? 'reached' : 'advanced';
   };
   for (let it = 0; it < maxIter; it++) {
-    if (Date.now() - t0 > timeBudgetMs) return null;
+    stats.iters = it;
+    if (Date.now() - t0 > timeBudgetMs) { stats.reason = 'time'; return null; }
     const qr = LO.map((l, i) => l + rng() * (HI[i] - l));
     if (extend(Ta, qr) !== 'trapped') {
       const qnew = Ta[Ta.length - 1].q;
@@ -65,6 +71,7 @@ export function rrtConnect(qs, qg, spheres, { step = 0.25, maxIter = 4000, rng =
     }
     [Ta, Tb] = [Tb, Ta]; swapped = !swapped;
   }
+  stats.reason = 'iterations';
   return null;
 }
 
