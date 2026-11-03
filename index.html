@@ -7,17 +7,18 @@
 <meta name="description" content="Vishesh Konduru, robotics engineering student at WPI.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/site.css">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <header class="site-head">
   <div class="edge head-inner">
     <a class="site-name" href="index.html">Vishesh Konduru</a>
     <nav class="site-nav"><a href="index.html" aria-current=page>Work</a><a href="journey.html">Journey</a><a href="about.html">About</a><a href="docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
   </div>
 </header>
-<main>
+<main id="main">
 
 <section class="hero">
   <video autoplay muted loop playsinline preload="auto" poster="assets/video/hero_poster.jpg"><source src="assets/video/hero_av1.mp4" type="video/mp4; codecs=av01.0.08M.08"><source src="assets/video/hero.mp4" type="video/mp4"></video>
@@ -29,77 +30,77 @@
       <div><span>Robotics Engineering, CS Minor, WPI</span><span>BS May 2027 &middot; MS December 2027</span></div>
       <div><span>Software Engineer</span><span>Cavall Labs</span></div>
     </div>
-    <div class="hero-links"><a href="mailto:vishesh-konduru@outlook.com">Email</a><a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a><a href="https://github.com/VisheshKonduru">GitHub</a><a href="docs/Vishesh_Konduru_Resume.pdf">Resume</a></div>
+    <div class="hero-links"><a href="mailto:vishesh-konduru@outlook.com">Email</a><a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a><a href="https://github.com/VisheshKonduru">GitHub</a><a href="docs/Vishesh_Konduru_Resume.pdf">Resume <span class="size">(PDF, 142 KB)</span></a></div>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <div class="section-head"><h2>Projects</h2></div>
-    <div class="work"><a class="work-item" href="projects/heimdall.html">
-  <img class="thumb" src="assets/img/heimdall/inputs.jpg" alt="" loading="lazy">
-  <div>
+    <div class="section-head"><h2 id="projects">Projects</h2></div>
+    <div class="index"><a class="entry" href="projects/heimdall.html">
+  <span class="entry-year">2026&ndash;now</span>
+  <div class="entry-text">
     <h3>Heimdall: An Agentic Eye for Chemistry</h3>
     <ul class="honors honors-card"><li>Co-first author</li><li>Accepted to the NeurIPS 2026 ML4Molecules workshop</li></ul>
     <p>A multi-agent system that reads molecule drawings in papers and patents and turns them into SMILES.</p>
-    <div class="tags"><span class="tag">Agentic systems</span><span class="tag">Tool-using agents</span><span class="tag">Agent skills</span><span class="tag">MCP</span><span class="tag">Claude Code</span><span class="tag">Codex</span><span class="tag">Python</span><span class="tag">RDKit</span><span class="tag">FastAPI</span><span class="tag">TypeScript</span><span class="tag">Next.js</span><span class="tag">Docker</span></div>
   </div>
-</a><a class="work-item" href="projects/mqp.html">
-  <img class="thumb" src="assets/img/mqp/robot.jpg" alt="" loading="lazy">
-  <div>
+  <img class="entry-img" src="assets/img/heimdall/inputs.jpg" alt="" decoding="async" width="2400" height="577">
+</a><a class="entry" href="projects/mqp.html">
+  <span class="entry-year">2025&ndash;2026</span>
+  <div class="entry-text">
     <h3>Autonomous Robotic Design for Strategic Adversarial Games</h3>
     
     <p>A robot that plays the 2025-26 VEX game, Push Back, with no driver. It sees the field with five cameras and two LiDARs, plans with ROS 2, and picks its moves with a strategy agent trained by self-play.</p>
-    <div class="tags"><span class="tag">Mechanical design</span><span class="tag">Design under constraints</span><span class="tag">Onshape</span><span class="tag">SolidWorks</span><span class="tag">Python</span><span class="tag">C++</span><span class="tag">ROS 2</span><span class="tag">Nav2</span><span class="tag">BehaviorTree.CPP</span><span class="tag">RViz</span><span class="tag">Gazebo</span><span class="tag">Jetson</span><span class="tag">OpenCV</span><span class="tag">YOLO</span><span class="tag">PyTorch</span><span class="tag">Blender</span><span class="tag">PPO</span></div>
   </div>
-</a><a class="work-item" href="projects/ultrasound.html">
-  <img class="thumb" src="assets/img/ultrasound/probe.jpg" alt="" loading="lazy">
-  <div>
+  <img class="entry-img" src="assets/img/mqp/robot.jpg" alt="" decoding="async" loading="lazy" width="1800" height="1350">
+</a><a class="entry" href="projects/ultrasound.html">
+  <span class="entry-year">2026</span>
+  <div class="entry-text">
     <h3>Custom Variable-Pitch Ultrasound Transducer Beamforming for Needle Guidance</h3>
     <ul class="honors honors-card"><li>Working with the WPI Medical FUSION Lab</li></ul>
     <p>The JAR526 is a 128-element ultrasound probe with a slit through the middle for a needle, so its elements are not evenly spaced. We wrote a beamformer that uses where the elements really are, compared four ways of forming the image, and built a combined beamformer that makes the needle about four times easier to see.</p>
-    <div class="tags"><span class="tag">MATLAB</span><span class="tag">Verasonics</span><span class="tag">Field II</span><span class="tag">Signal processing</span></div>
   </div>
-</a><a class="work-item" href="projects/iqp.html">
-  <img class="thumb" src="assets/img/iqp/title.jpg" alt="" loading="lazy">
-  <div>
+  <img class="entry-img" src="assets/img/ultrasound/probe.jpg" alt="" decoding="async" loading="lazy" width="1038" height="778">
+</a><a class="entry" href="projects/iqp.html">
+  <span class="entry-year">2026</span>
+  <div class="entry-text">
     <h3>Giving Shells a New Life: Oyster Waste Solutions in Angsila, Thailand</h3>
     <ul class="honors honors-card"><li>Nominated for WPI's President's IQP Award</li><li>Nominated for the Forum on Education Abroad's Award for Academic Achievement Abroad</li></ul>
     <p>Seven of us from WPI and Chulalongkorn University worked out how Angsila, a fishing town in Thailand, could turn the oyster shells piling up in its streets into building material.</p>
-    <div class="tags"><span class="tag">Materials processing</span><span class="tag">Materials testing</span><span class="tag">Manufacturing</span><span class="tag">Concrete composites</span><span class="tag">Sustainability</span><span class="tag">Circular economy</span><span class="tag">Market analysis</span><span class="tag">Stakeholder interviews</span><span class="tag">Field research</span><span class="tag">Thailand</span></div>
   </div>
-</a><a class="work-item" href="projects/rbe3001.html">
-  <img class="thumb" src="assets/img/arm/thumb.jpg" alt="" loading="lazy">
-  <div>
+  <img class="entry-img" src="assets/img/iqp/title.jpg" alt="" decoding="async" loading="lazy" width="1800" height="1013">
+</a><a class="entry" href="projects/rbe3001.html">
+  <span class="entry-year">2025</span>
+  <div class="entry-text">
     <h3>RBE-3001 Final Project</h3>
     
     <p>A 4-joint robot arm with a camera that sorts coloured balls, follows a ball around in real time, and plays tic-tac-toe against a person.</p>
-    <div class="tags"><span class="tag">MATLAB</span><span class="tag">Kinematics</span><span class="tag">Computer vision</span></div>
   </div>
-</a><a class="work-item" href="projects/mapping.html">
-  <img class="thumb" src="assets/img/mapping/maze.jpg" alt="" loading="lazy">
-  <div>
+  <img class="entry-img" src="assets/img/arm/thumb.jpg" alt="" decoding="async" loading="lazy" width="1600" height="900">
+</a><a class="entry" href="projects/mapping.html">
+  <span class="entry-year">2025</span>
+  <div class="entry-text">
     <h3>Autonomous Mapping and Localizing Robot</h3>
     
     <p>A TurtleBot3 that explores a maze it has never seen, builds a map of it with LiDAR, then uses that map to find where it is and drive to a goal.</p>
-    <div class="tags"><span class="tag">ROS</span><span class="tag">SLAM</span><span class="tag">A*</span><span class="tag">AMCL</span><span class="tag">Python</span></div>
   </div>
-</a><a class="work-item" href="projects/tables4u.html">
-  <div class="thumb todo">Screenshot coming soon</div>
-  <div>
+  <img class="entry-img" src="assets/img/mapping/maze.jpg" alt="" decoding="async" loading="lazy" width="1392" height="997">
+</a><a class="entry no-img" href="projects/tables4u.html">
+  <span class="entry-year">2024</span>
+  <div class="entry-text">
     <h3>Tables4U</h3>
     
     <p>A restaurant reservation web app. Diners find a restaurant and book a table; owners manage their tables, hours and bookings.</p>
-    <div class="tags"><span class="tag">Next.js</span><span class="tag">React</span><span class="tag">AWS Lambda</span><span class="tag">MySQL</span><span class="tag">Vercel</span></div>
   </div>
+  
 </a></div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <div class="section-head"><h2>Recognition</h2></div>
+    <div class="section-head"><h2 id="recognition">Recognition</h2></div>
     <div class="rows">
       <div class="row"><span class="when">2026</span><div><strong>Paper accepted to the NeurIPS 2026 ML4Molecules workshop</strong><p>Co-first author, <a href="https://openreview.net/forum?id=QrZdMrLP5X"><em>Heimdall: An Agentic Eye for Chemistry</em></a>.</p></div></div>
       <div class="row"><span class="when">2026</span><div><strong>Nominated for WPI's President's IQP Award</strong><p>For <a href="projects/iqp.html">Giving Shells a New Life</a>.</p></div></div>
@@ -111,7 +112,7 @@
 
 <section>
   <div class="wrap">
-    <div class="section-head"><h2>Experience</h2></div>
+    <div class="section-head"><h2 id="experience">Experience</h2></div>
     <div class="rows">
       <div class="row"><span class="when">Mar 2026 to now</span><div><strong>Software Engineer, Cavall Labs (CMU VentureBridge)</strong><p>Heimdall, the agent tooling around it, and a browser molecule sketcher.</p></div></div>
       <div class="row"><span class="when">Feb 2024 to May 2026</span><div><strong>Robotics Outreach Assistant, WPI</strong><p>Data work for Admissions and robotics outreach events.</p></div></div>
@@ -137,6 +138,18 @@ setTimeout(go,2500);})();
 (function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
 if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
 f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+(function(){if(!('IntersectionObserver' in window))return;
+var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(!still){var els=document.querySelectorAll('main > section .wrap > *, .article > *, .stop, .entry');
+var ro=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});
+els.forEach(function(el){if(el.getBoundingClientRect().top>innerHeight){el.classList.add('rv');ro.observe(el);}});}
+var vo=new IntersectionObserver(function(es){es.forEach(function(e){var v=e.target;if(e.isIntersecting){if(!still||v.closest('.hero')){var p=v.play();if(p&&p.catch)p.catch(function(){});}}else v.pause();});},{rootMargin:'200px'});
+document.querySelectorAll('video[autoplay]').forEach(function(v){if(still&&!v.closest('.hero')){v.removeAttribute('autoplay');v.pause();v.controls=true;}vo.observe(v);});
+document.querySelectorAll('.yt').forEach(function(b){b.addEventListener('click',function(){var f=document.createElement('iframe');f.className='short';f.src='https://www.youtube-nocookie.com/embed/'+b.dataset.id+'?autoplay=1';f.title=b.dataset.title;f.allow='autoplay; encrypted-media; picture-in-picture';f.allowFullscreen=true;b.replaceWith(f);f.focus();});});
+var toc=document.querySelectorAll('.toc a');if(!toc.length)return;var map={};toc.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+var so=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){toc.forEach(function(a){a.removeAttribute('aria-current');});map[e.target.id].setAttribute('aria-current','true');}});},{rootMargin:'0px 0px -70% 0px'});
+document.querySelectorAll('.toc-m a').forEach(function(a){a.addEventListener('click',function(){a.closest('details').open=false;});});
+document.querySelectorAll('.article h2[id]').forEach(function(h){so.observe(h);});})();
 </script>
 </body>
 </html>
