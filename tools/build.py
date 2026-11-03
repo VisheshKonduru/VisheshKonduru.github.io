@@ -181,13 +181,12 @@ def index_page():
     for p in PROJECTS:
         thumb = (f'<img class="entry-img" src="{p["thumb"]}" alt="" loading="lazy">' if p["thumb"] else "")
         items.append(f"""<a class="entry{" no-img" if not thumb else ""}" href="projects/{p["slug"]}.html">
-  <span class="entry-year">{_year(p)}</span>
+  <div class="entry-media">{thumb}</div>
   <div class="entry-text">
     <h3>{p["title"]}</h3>
     {honors_card(p)}
     <p>{p["blurb"]}</p>
   </div>
-  {thumb}
 </a>""")
     body = f"""
 <section class="hero">
