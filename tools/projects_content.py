@@ -10,6 +10,7 @@ Each body is a list of blocks:
   trio(fig(...), fig(...), fig(...)) three photos side by side
   video("path", "caption")
   todo("what goes here")             placeholder until the photo exists
+  arm3d("caption")                   live 3D arm demo (RBE-3001 only)
 """
 
 
@@ -46,6 +47,15 @@ def loop(src, caption=""):
 
 def todo(text):
     return f'<figure class="fig"><div class="todo">{text}</div></figure>'
+
+
+def arm3d(caption=""):
+    """Live RBE-3001 arm demo (three.js). Mounts into the div; loads only when scrolled near."""
+    cap = f"<figcaption>{caption}</figcaption>" if caption else ""
+    return ('<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",'
+            '"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>'
+            f'<figure class="fig arm3d" id="live-demo"><div data-arm3d></div>{cap}</figure>'
+            '<script type="module" src="../assets/3d/arm/arm-demo.js"></script>')
 
 
 def pair(a, b):
@@ -329,6 +339,7 @@ PROJECTS = [
             h("Sorting"),
             p("The camera takes one reading of every ball and its position. The arm then goes above each ball, lowers, grabs it, lifts it back up and carries it to that colour's bin. Lifting straight up first keeps the gripper clear of the other balls. We used blocking moves so that new camera readings couldn't interrupt a move halfway through."),
             loop("assets/video/arm_sort.mp4", "Sorting balls into bins by colour (2x speed)."),
+            arm3d("Live: the camera finds each ball, converts its position to the arm's frame, and the arm sorts it or plays tic-tac-toe. This is a simulation with its own camera parameters, not a recording; nudge the camera or dim the lights to see detection drift."),
 
             h("Real-time tracking"),
             p("For tracking, the gripper follows one ball of a chosen colour around the board and ignores the others. At first it was slow and lagged well behind the ball. The masking code was inefficient, and plotting and print statements were slowing every frame down. Once we cut those and rewrote the masking, the arm kept up with the ball in real time."),
