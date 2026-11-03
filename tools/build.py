@@ -378,7 +378,6 @@ def _dims(html, base):
         mb = p.stat().st_size / 1e6
         sz = f"{mb:.0f} MB" if mb >= 1 else f"{p.stat().st_size // 1000} KB"
         return f'{m.group(0)[:-4]} <span class="size">(PDF, {sz})</span></a>'
-    html = re.sub(r'<a href="([^"]+\.pdf)"[^>]*>(?:(?!</a>).)*</a>', pdf, html)
     return html
 
 
