@@ -207,14 +207,14 @@ export function costmap(g, hardR = 0.15, softR = 0.28, lethalR = 0.10) {
 const NB = [[1, 0, 1], [-1, 0, 1], [0, 1, 1], [0, -1, 1], [1, 1, Math.SQRT2], [1, -1, Math.SQRT2], [-1, 1, Math.SQRT2], [-1, -1, Math.SQRT2]];
 
 // A* on the robot's own map. unknownCost: Infinity = known-free only.
-export function astar(g, cm, s, t, unknownCost = Infinity) {
+export function astar(g, cm, s, t, unknownCost = Infinity, trace = null) {
   const W = g.w, n = W * g.h, G = new Float32Array(n).fill(Infinity), P = new Int32Array(n).fill(-1);
   const closed = new Uint8Array(n), open = new Heap();
   const si = s % W, sj = (s / W) | 0, ti = t % W, tj = (t / W) | 0;
   const hfn = (i, j) => { const dx = Math.abs(i - ti), dy = Math.abs(j - tj); return Math.max(dx, dy) + (Math.SQRT2 - 1) * Math.min(dx, dy); };
   G[s] = 0; open.push(hfn(si, sj), s);
   while (open.size) {
-    const u = open.pop(); if (closed[u]) continue; closed[u] = 1;
+    const u = open.pop(); if (closed[u]) continue; closed[u] = 1; if (trace) trace.closed.push(u);
     if (u === t) break;
     const ui = u % W, uj = (u / W) | 0;
     for (const [a, b, c] of NB) {
@@ -228,6 +228,7 @@ export function astar(g, cm, s, t, unknownCost = Infinity) {
       if (ng < G[k]) { G[k] = ng; P[k] = u; open.push(ng + hfn(i, j), k); }
     }
   }
+  if (trace) trace.open = open.v.filter(k => !closed[k]);
   if (P[t] < 0 && s !== t) return null;
   const path = []; for (let k = t; k >= 0; k = P[k]) { path.push(k); if (k === s) break; }
   return path.reverse();
@@ -273,7 +274,7 @@ export function frontiers(g, cm, start, minSize = 3) {
     }
     if (cells.length < minSize) continue;
     let best = cells[0]; for (const c of cells) if (D[c] < D[best]) best = c;
-    out.push({ cell: best, size: cells.length, dist: D[best] });
+    out.push({ cell: best, size: cells.length, dist: D[best], cells });
   }
   out.sort((a, b) => a.dist - b.dist);
   return out;
@@ -391,13 +392,17 @@ export class World {
       if (!fr.length) { this.mode = 'final'; this.goal = this.finalGoal; this.status = 'Map complete: driving to goal'; return this.plan(); }
       const f = fr[0];
       this.goal = this.cellXY(f.cell);
-      const p = astar(g, cm, s, f.cell);
+      const tr = { closed: [], open: [] };
+      const p = astar(g, cm, s, f.cell, Infinity, tr);
+      this.viz = { t: this.time, frontiers: fr, target: f.cell, closed: tr.closed, open: tr.open, n: (this.viz?.n || 0) + 1 };
       if (!p) { this.blacklist.add(f.cell); this.path = null; return; }
       this.setPath(p); this.status = `Exploring: ${fr.length} frontier${fr.length > 1 ? 's' : ''}`;
     } else if (this.goal) {
       const [ti, tj] = g.toCell(this.goal[0], this.goal[1]);
       if (!g.inside(ti, tj)) { this.status = 'Goal outside map'; this.path = null; return; }
-      const p = astar(g, cm, s, tj * g.w + ti, this.mode === 'final' ? Infinity : 8);
+      const tr = { closed: [], open: [] };
+      const p = astar(g, cm, s, tj * g.w + ti, this.mode === 'final' ? Infinity : 8, tr);
+      this.viz = { t: this.time, frontiers: [], target: tj * g.w + ti, closed: tr.closed, open: tr.open, n: (this.viz?.n || 0) + 1 };
       if (!p) { this.status = 'No path on current map'; this.path = null; return; }
       this.setPath(p);
       this.status = this.mode === 'final' ? 'Map complete: driving to goal' : 'Driving to clicked goal (A* on own map)';

@@ -19,6 +19,11 @@
   #stage:focus-visible { box-shadow: inset 0 0 0 3px var(--focus); }
   #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
   #loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+  #tabs { display: flex; gap: 0; padding: 8px 12px 0; border-bottom: 1px solid var(--btn-b); }
+  #tabs button { min-height: 44px; padding: 0 16px; font: inherit; font-size: 14px; color: var(--muted); background: none;
+    border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+  #tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--fg); }
+  #tabs button:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
   #bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; }
   #bar button {
     min-height: 44px; min-width: 44px; padding: 0 14px; font: inherit; font-size: 14px;
@@ -38,8 +43,12 @@
 </script>
 </head>
 <body>
+<div id="tabs" role="tablist" aria-label="Scene">
+  <button role="tab" type="button" data-scene="A" aria-selected="true">Autonomous mapping</button>
+  <button role="tab" type="button" data-scene="B" aria-selected="false" tabindex="-1">Autonomous localization</button>
+</div>
 <div id="stage" tabindex="0" role="application"
-     aria-label="3D scene: TurtleBot3 Burger exploring a maze with LiDAR. Click the floor to set a goal. Focus here and use W A S D or arrow keys to drive.">
+     aria-label="3D scene: TurtleBot3 Burger in a maze with LiDAR. Click the floor to set a goal. In mapping, focus here and use W A S D or arrow keys to drive. In localization, drag the robot to move it.">
   <div id="loading">Loading scene</div>
 </div>
 <div id="bar" role="toolbar" aria-label="Simulation controls">
