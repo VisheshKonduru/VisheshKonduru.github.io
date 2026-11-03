@@ -212,17 +212,6 @@ def index_page():
   </div>
 </section>
 
-<section>
-  <div class="wrap">
-    <div class="section-head"><h2>Recognition</h2></div>
-    <div class="rows">
-      <div class="row"><span class="when">2026</span><div><strong>Paper accepted to the NeurIPS 2026 ML4Molecules workshop</strong><p>Co-first author, <a href="https://openreview.net/forum?id=QrZdMrLP5X"><em>Heimdall: An Agentic Eye for Chemistry</em></a>.</p></div></div>
-      <div class="row"><span class="when">2026</span><div><strong>Nominated for WPI's President's IQP Award</strong><p>For <a href="projects/iqp.html">Giving Shells a New Life</a>.</p></div></div>
-      <div class="row"><span class="when">2026</span><div><strong>Nominated for the Award for Academic Achievement Abroad</strong><p>From the Forum on Education Abroad, for the same project.</p></div></div>
-      <div class="row"><span class="when">2023 to now</span><div><strong>VEX U World Championship</strong><p>Competed with WPI's VEX U team. See the <a href="journey.html">journey</a>.</p></div></div>
-    </div>
-  </div>
-</section>
 
 <section>
   <div class="wrap">
