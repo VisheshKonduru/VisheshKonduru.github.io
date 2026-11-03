@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heimdall · Vishesh Konduru</title>
+<meta name="description" content="A multi-agent system that reads molecule drawings in papers and patents and turns them into SMILES.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/site.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="edge head-inner">
+    <a class="site-name" href="../index.html">Vishesh Konduru</a>
+    <nav class="site-nav"><a href="../index.html">Work</a><a href="../journey.html">Journey</a><a href="../about.html">About</a><a href="../docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
+  </div>
+</header>
+<main>
+
+<article class="wrap project-head">
+  <div class="article">
+    <h1>Heimdall: An Agentic Eye for Chemistry</h1>
+    <p class="meta">Software engineer at Cavall Labs (CMU VentureBridge), March 2026 to now.</p>
+    <ul class="honors"><li>Co-first author</li><li>Accepted to the NeurIPS 2026 ML4Molecules workshop</li></ul>
+    <div class="links top-links"><a href="https://openreview.net/forum?id=QrZdMrLP5X" class="">Paper on OpenReview</a><a href="https://neurips.cc/Conferences/2026" class="">NeurIPS 2026</a><a href="https://github.com/CAVALL-ORG/Heimdall" class="">Heimdall on GitHub</a><a href="https://www.cavall.ai/" class="">Cavall</a></div>
+    <p>Chemistry papers and patents show molecules as drawings. Before a chemist can search them, compare them or run them through other software, someone has to turn each drawing back into a structure a computer can read, usually a SMILES string. Doing that by hand is slow, and the tools that try to do it automatically struggle with the drawings that actually show up in documents.</p><figure class="fig diagram"><img src="../assets/img/heimdall/inputs.jpg" alt="The same molecule drawn the ways it shows up in real documents: low-resolution scans with page markings, abbreviations, stereochemistry, colour and hand-drawn styles, and generic structures with placeholder groups." loading="lazy"><figcaption>The same molecule drawn the ways it shows up in real documents: low-resolution scans with page markings, abbreviations, stereochemistry, colour and hand-drawn styles, and generic structures with placeholder groups.</figcaption></figure><h2>How it works</h2><p>Heimdall splits the job between language models and ordinary code. A director agent looks at each image and decides whether to read it whole, split it into regions, or set it aside. Reader agents describe what they see piece by piece through a command-line tool, instead of writing SMILES themselves. A deterministic RDKit back end assembles those pieces, joins the regions back together and checks that the result is a valid molecule. When something doesn't add up, separate agents are asked about chemical or visual uncertainty, and a final pass rereads any gaps in stereochemistry.</p><p>The point of that split is that the language model never produces the final answer on its own. Every structure that comes out has been built and checked by RDKit.</p><figure class="fig diagram wide"><img src="../assets/img/heimdall/pipeline.jpg" alt="The image-to-SMILES pipeline. Red boxes are language model agents, blue boxes are deterministic code." loading="lazy"><figcaption>The image-to-SMILES pipeline. Red boxes are language model agents, blue boxes are deterministic code.</figcaption></figure><p>Patents need more than reading single drawings. A separate pipeline works through a whole patent PDF: it finds the regions worth reading, reads chemical names and drawings, checks whether the patent claims a generic Markush structure, and if it does, builds the scaffold and its R-group definitions. It uses the image-to-SMILES pipeline for every drawing it finds.</p><figure class="fig diagram"><img src="../assets/img/heimdall/patent_pipeline.jpg" alt="The patent extraction pipeline, from setup through names, drawings, the Markush genus build and the final report." loading="lazy"><figcaption>The patent extraction pipeline, from setup through names, drawings, the Markush genus build and the final report.</figcaption></figure><h2>Benchmark</h2><p>We tested Heimdall on a benchmark split into three tiers: clean baseline images, degraded ones, and frontier cases like metal complexes, images from the wild and hand-drawn structures, plus secondary sets and two full patents.</p><figure class="fig diagram wide"><img src="../assets/img/heimdall/benchmark.jpg" alt="The benchmark sets and how many images are in each." loading="lazy"><figcaption>The benchmark sets and how many images are in each.</figcaption></figure><h2>What else I built around it</h2><ul><li>An agent role system. One central config sets each role's model, effort level and tool permissions, and compiles them into the native agent files for Claude Code, Codex, Cursor, Zed and OpenCode.</li><li>A server-side runtime in a FastAPI back end that runs Heimdall's skills and MCP tools on each user's own API key, and routes requests between local and cloud models.</li><li>A document interface in Next.js and TypeScript where chemists cut molecule drawings out of PDFs and images, send them through Heimdall, then review and export the results.</li><li>Docker images for the FastAPI and PostgreSQL back end, with the PyTorch vision model moved into its own service to keep the API image small.</li></ul><h2>What I'm working on now</h2><p>A molecule sketcher that runs in the browser, written in TypeScript with RDKit compiled to WebAssembly. It turns raw pen strokes into bonds, rings, stereo wedges and handwritten element labels, and shows the SMILES live as you draw.</p>
+  </div>
+</article>
+<section><div class="wrap pager">
+  <a href="tables4u.html">&larr; Tables4U</a>
+  <a href="mqp.html">Autonomous Robotic Design for Strategic Adversarial Games &rarr;</a>
+</div></section>
+
+</main>
+<footer class="site-foot">
+  <div class="wrap">
+    <span>Vishesh Konduru</span>
+    <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
+  </div>
+</footer>
+<script>
+(function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
+function go(){if(!done){done=true;hero.classList.add('go');}}
+if(!v){go();return;}
+function tick(){if(done)return;if(v.currentTime>=0.45)go();else requestAnimationFrame(tick);}
+v.addEventListener('playing',tick);if(!v.paused)tick();
+setTimeout(go,2500);})();
+(function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
+if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
+f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autonomous Mapping and Localizing Robot · Vishesh Konduru</title>
+<meta name="description" content="A TurtleBot3 that explores a maze it has never seen, builds a map of it with LiDAR, then uses that map to find where it is and drive to a goal.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/site.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="edge head-inner">
+    <a class="site-name" href="../index.html">Vishesh Konduru</a>
+    <nav class="site-nav"><a href="../index.html">Work</a><a href="../journey.html">Journey</a><a href="../about.html">About</a><a href="../docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
+  </div>
+</header>
+<main>
+
+<article class="wrap project-head">
+  <div class="article">
+    <h1>Autonomous Mapping and Localizing Robot</h1>
+    <p class="meta">RBE 3002 at WPI, spring 2025. Team project.</p>
+    
+    
+    <p>The robot is dropped into a maze with no map. It has to explore the whole thing, build a map as it goes, and then, starting from an unknown spot, work out where it is on that map and drive to a goal.</p><figure class="fig "><img src="../assets/img/mapping/maze.jpg" alt="The final maze in simulation." loading="lazy"><figcaption>The final maze in simulation.</figcaption></figure><h2>Exploring</h2><p>To decide where to go next, the robot looks for frontiers: the edges between space it has already mapped and space it hasn't. It groups nearby frontier cells together, picks a group using its centre, and drives there. When there are no frontiers left, the map is done.</p><h2>Mapping and planning</h2><p>The map is an occupancy grid built with LiDAR SLAM. We tried two mapping back ends, gmapping and Cartographer. Paths are planned with A* on the grid. The robot drives them without blocking the rest of the program, so it can keep updating the map while it moves.</p><h2>Finding itself</h2><p>In the last phase the robot is placed somewhere in the finished maze and uses AMCL, a particle filter, to figure out where it is before driving to the goal.</p><figure class="fig "><img src="../assets/img/mapping/world.jpg" alt="The test world used during development." loading="lazy"><figcaption>The test world used during development.</figcaption></figure><figure class="fig"><div class="todo">Photo or video of the real robot</div></figure>
+  </div>
+</article>
+<section><div class="wrap pager">
+  <a href="rbe3001.html">&larr; RBE-3001 Final Project</a>
+  <a href="tables4u.html">Tables4U &rarr;</a>
+</div></section>
+
+</main>
+<footer class="site-foot">
+  <div class="wrap">
+    <span>Vishesh Konduru</span>
+    <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
+  </div>
+</footer>
+<script>
+(function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
+function go(){if(!done){done=true;hero.classList.add('go');}}
+if(!v){go();return;}
+function tick(){if(done)return;if(v.currentTime>=0.45)go();else requestAnimationFrame(tick);}
+v.addEventListener('playing',tick);if(!v.paused)tick();
+setTimeout(go,2500);})();
+(function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
+if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
+f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+</script>
+</body>
+</html>

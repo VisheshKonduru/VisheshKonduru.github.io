@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About · Vishesh Konduru</title>
+<meta name="description" content="Vishesh Konduru, robotics engineering student at WPI.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="edge head-inner">
+    <a class="site-name" href="index.html">Vishesh Konduru</a>
+    <nav class="site-nav"><a href="index.html">Work</a><a href="journey.html">Journey</a><a href="about.html" aria-current=page>About</a><a href="docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
+  </div>
+</header>
+<main>
+
+<div class="wrap about-top body-grid">
+  <img class="portrait" src="assets/img/me.jpg" alt="Vishesh Konduru">
+  <div>
+    <h1>About me</h1>
+    <div class="prose">
+      <p>I'm in WPI's combined BS and MS program in Robotics Engineering, with a minor in Computer Science, finishing in December 2027. I like work where hardware and software meet: robots that have to see and decide on their own, sensors that need careful signal processing, and tools that real people use every day.</p>
+      <p>I'm U.S. work authorized and don't need sponsorship.</p>
+    </div>
+  </div>
+</div>
+<section>
+  <div class="wrap body-grid">
+    <h2 class="label">Coursework</h2>
+    <div class="prose">
+      <p><strong>Graduate:</strong> Robot Dynamics, Robot Control, Swarm Intelligence, Biomedical Robotics, Imaging for Medical Robotics.</p>
+      <p><strong>Undergraduate:</strong> Unified Robotics I to IV, Control Engineering, Embedded Systems, Algorithms, Software Engineering, Object-Oriented Design, Intro to AI.</p>
+    </div>
+  </div>
+</section>
+<section>
+  <div class="wrap body-grid">
+    <h2 class="label">Outside class</h2>
+    <div class="prose">
+      <p>I've volunteered more than 400 hours at VEX, FRC, FTC and FLL competitions. I also play in orchestra at WPI, and did in high school.</p>
+      <div class="gallery"><figure class="figure "><div class="todo">Photo: orchestra</div></figure><figure class="figure "><div class="todo">Photo: volunteering at a competition</div></figure></div>
+    </div>
+  </div>
+</section>
+<section>
+  <div class="wrap body-grid">
+    <h2 class="label">Contact</h2>
+    <div class="links">
+      <a class="local" href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a>
+      <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a>
+      <a href="https://github.com/VisheshKonduru">GitHub</a>
+      <a class="local" href="docs/Vishesh_Konduru_Resume.pdf">Resume</a>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer class="site-foot">
+  <div class="wrap">
+    <span>Vishesh Konduru</span>
+    <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
+  </div>
+</footer>
+<script>
+(function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
+function go(){if(!done){done=true;hero.classList.add('go');}}
+if(!v){go();return;}
+function tick(){if(done)return;if(v.currentTime>=0.45)go();else requestAnimationFrame(tick);}
+v.addEventListener('playing',tick);if(!v.paused)tick();
+setTimeout(go,2500);})();
+(function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
+if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
+f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+</script>
+</body>
+</html>

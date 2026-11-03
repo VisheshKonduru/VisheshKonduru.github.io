@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Journey · Vishesh Konduru</title>
+<meta name="description" content="Vishesh Konduru, robotics engineering student at WPI.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="edge head-inner">
+    <a class="site-name" href="index.html">Vishesh Konduru</a>
+    <nav class="site-nav"><a href="index.html">Work</a><a href="journey.html" aria-current=page>Journey</a><a href="about.html">About</a><a href="docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
+  </div>
+</header>
+<main>
+
+<div class="wrap project-head">
+  <h1>Robots, mostly, since high school</h1>
+  <p class="lede">The teams, seasons and trips that got me here.</p>
+</div>
+<section><div class="wrap timeline"><div class="stop">
+  <div class="year">High school</div>
+  <div>
+    <h2>FRC and VEX</h2>
+    <p class="sub">Where it started</p>
+    <div class="prose"><p>I started building robots in high school on FRC and VEX teams.</p></div>
+    <div class="gallery"><figure class="figure"><video src="assets/video/hs_outreach.mp4" autoplay muted loop playsinline preload="metadata"></video><figcaption>FRC Team 3735 VorTX at Siemens Energy Day.</figcaption></figure><figure class="figure"><video src="assets/video/hs_frc_climb.mp4" autoplay muted loop playsinline preload="metadata"></video><figcaption>Our 2021-22 FRC robot climbing in the endgame.</figcaption></figure><figure class="figure "><div class="todo">Photo: high school VEX robot</div></figure></div>
+  </div>
+</div><div class="stop">
+  <div class="year">2023 to 2024</div>
+  <div>
+    <h2>WPI VEX U, Over Under</h2>
+    <p class="sub">First season in college</p>
+    <div class="prose"><p>Joined WPI's VEX U team in April 2023.</p></div>
+    <div class="gallery"><figure class="figure "><div class="todo">Photo: 2023-24 robot</div></figure><figure class="figure "><div class="todo">Video or photo: 2023-24 season</div></figure></div>
+  </div>
+</div><div class="stop">
+  <div class="year">2024 to 2025</div>
+  <div>
+    <h2>WPI VEX U, High Stakes</h2>
+    <p class="sub"></p>
+    <div class="prose"><p>A short interview about our endgame climb mechanism.</p></div>
+    <div class="gallery"><figure class="figure"><iframe class="short" src="https://www.youtube-nocookie.com/embed/1kmXXycRsSI" title="VEX U 2024-25 endgame climb interview" loading="lazy" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></figure><figure class="figure"><video src="assets/video/vex_worlds.mp4" autoplay muted loop playsinline preload="metadata"></video><figcaption>A match from the driver&rsquo;s spot, May 2025.</figcaption></figure></div>
+  </div>
+</div><div class="stop">
+  <div class="year">Early 2026</div>
+  <div>
+    <h2>Thailand</h2>
+    <p class="sub">Interactive Qualifying Project</p>
+    <div class="prose"><p>In Bangkok and Angsila, working on oyster shell waste with students from Chulalongkorn University. <a href="projects/iqp.html">Read about the project</a>.</p></div>
+    <div class="gallery"><figure class="figure crop"><img src="assets/img/iqp/farm.jpg" alt="Oyster farm off Angsila." loading="lazy"><figcaption>Oyster farm off Angsila.</figcaption></figure><figure class="figure crop"><img src="assets/img/iqp/interview.jpg" alt="Field interviews." loading="lazy"><figcaption>Field interviews.</figcaption></figure></div>
+  </div>
+</div><div class="stop">
+  <div class="year">2025 to 2026</div>
+  <div>
+    <h2>WPI VEX U, Push Back</h2>
+    <p class="sub">and the autonomous robot</p>
+    <div class="prose"><p>Our MQP team built a robot that plays the whole match by itself. <a href="projects/mqp.html">Read about the robot</a>.</p></div>
+    <div class="gallery"><figure class="figure crop"><img src="assets/img/mqp/robot.jpg" alt="The autonomous robot." loading="lazy"><figcaption>The autonomous robot.</figcaption></figure><figure class="figure "><div class="todo">Photo: VEX U World Championship</div></figure></div>
+  </div>
+</div><div class="stop">
+  <div class="year">2026</div>
+  <div>
+    <h2>Cavall Labs and NeurIPS</h2>
+    <p class="sub"></p>
+    <div class="prose"><p>Started at Cavall Labs in March 2026. Our paper on Heimdall was accepted to the NeurIPS 2026 ML4Molecules workshop. <a href="projects/heimdall.html">Read about Heimdall</a>.</p></div>
+    <div class="gallery"></div>
+  </div>
+</div></div></section>
+
+</main>
+<footer class="site-foot">
+  <div class="wrap">
+    <span>Vishesh Konduru</span>
+    <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
+  </div>
+</footer>
+<script>
+(function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
+function go(){if(!done){done=true;hero.classList.add('go');}}
+if(!v){go();return;}
+function tick(){if(done)return;if(v.currentTime>=0.45)go();else requestAnimationFrame(tick);}
+v.addEventListener('playing',tick);if(!v.paused)tick();
+setTimeout(go,2500);})();
+(function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
+if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
+f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+</script>
+</body>
+</html>

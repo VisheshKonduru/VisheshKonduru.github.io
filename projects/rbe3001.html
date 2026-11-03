@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RBE-3001 Final Project · Vishesh Konduru</title>
+<meta name="description" content="A 4-joint robot arm with a camera that sorts coloured balls, follows a ball around in real time, and plays tic-tac-toe against a person.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/site.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="edge head-inner">
+    <a class="site-name" href="../index.html">Vishesh Konduru</a>
+    <nav class="site-nav"><a href="../index.html">Work</a><a href="../journey.html">Journey</a><a href="../about.html">About</a><a href="../docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
+  </div>
+</header>
+<main>
+
+<article class="wrap project-head">
+  <div class="article">
+    <h1>RBE-3001 Final Project</h1>
+    <p class="meta">Course project at WPI, 2025. Team of four with Olivia Cavanagh, Graham Mack and Henry Sica.</p>
+    
+    <div class="links top-links"><a href="../docs/RBE3001_Report.pdf" class="local">Report</a><a href="https://www.youtube.com/watch?v=zCdq1DwnjjE" class="">Video</a><a href="https://github.com/RBE3001-C25/RBE3001_C25_Team_2/releases/tag/TicTacToe" class="">Code</a></div>
+    <figure class="fig"><video src="../assets/video/arm_track.mp4" autoplay muted loop playsinline preload="metadata"></video><figcaption>The arm following a red ball in real time.</figcaption></figure><p>The final project for RBE 3001 brought together everything from the course's earlier labs: forward and inverse kinematics, velocity kinematics, camera calibration and image processing. The arm had to find balls of four colours on a checkerboard with its camera, pick each one up and sort it into the right bin.</p><p>On top of that we added two things of our own: real-time tracking, where the gripper follows a ball of one colour as someone moves it, and a game of tic-tac-toe against a person. I worked mostly on the tracking.</p><h2>Kinematics</h2><p>We started from our code from the earlier labs, which moved the arm to a point or along a path using forward and inverse position kinematics. We set up a reference frame on each joint and wrote the Denavit-Hartenberg table from them. Velocity kinematics from lab 4 let the arm move balls quickly without dropping them.</p><figure class="fig diagram"><img src="../assets/img/arm/frames.jpg" alt="Reference frames on each joint, and the final transformation matrix." loading="lazy"><figcaption>Reference frames on each joint, and the final transformation matrix.</figcaption></figure><h2>Seeing the board</h2><p>The camera needed both calibrations. Intrinsic calibration, with MATLAB's camera calibration app, worked out the camera's focal length, optical centre and lens distortion from pictures of the checkerboard. Extrinsic calibration placed the camera relative to the board, so pointsToWorld() could turn a pixel into a position on the board.</p><figure class="fig diagram"><img src="../assets/img/arm/extrinsic.jpg" alt="Where the checkerboard was in each calibration image, relative to the camera." loading="lazy"><figcaption>Where the checkerboard was in each calibration image, relative to the camera.</figcaption></figure><p>Then we undistorted the image, blacked out everything outside the board, and used colour masks to pick out the red, orange, yellow and green balls. Each ball's centre became a target for the arm.</p><div class="pair"><figure class="fig "><img src="../assets/img/arm/undistort.jpg" alt="Correcting the fish-eye distortion." loading="lazy"><figcaption>Correcting the fish-eye distortion.</figcaption></figure><figure class="fig "><img src="../assets/img/arm/masked.jpg" alt="Masking out everything except the board." loading="lazy"><figcaption>Masking out everything except the board.</figcaption></figure></div><figure class="fig "><img src="../assets/img/arm/labeled.jpg" alt="Balls found and labelled by colour." loading="lazy"><figcaption>Balls found and labelled by colour.</figcaption></figure><h2>Sorting</h2><p>The camera takes one reading of every ball and its position. The arm then goes above each ball, lowers, grabs it, lifts it back up and carries it to that colour's bin. Lifting straight up first keeps the gripper clear of the other balls. We used blocking moves so that new camera readings couldn't interrupt a move halfway through.</p><figure class="fig"><video src="../assets/video/arm_sort.mp4" autoplay muted loop playsinline preload="metadata"></video><figcaption>Sorting balls into bins by colour (2x speed).</figcaption></figure><h2>Real-time tracking</h2><p>For tracking, the gripper follows one ball of a chosen colour around the board and ignores the others. At first it was slow and lagged well behind the ball. The masking code was inefficient, and plotting and print statements were slowing every frame down. Once we cut those and rewrote the masking, the arm kept up with the ball in real time.</p><h2>Tic-tac-toe</h2><p>Our last task was a game against a person. The arm uses the same colour detection to read the board and a recursive search to pick its move. When nothing in view is moving, it checks whether the board has changed to know the person has played. It worked, though it sometimes placed a ball just off the board.</p><figure class="fig"><video src="../assets/video/arm_tictactoe.mp4" autoplay muted loop playsinline preload="metadata"></video><figcaption>Playing tic-tac-toe (2x speed).</figcaption></figure>
+  </div>
+</article>
+<section><div class="wrap pager">
+  <a href="iqp.html">&larr; Giving Shells a New Life: Oyster Waste Solutions in Angsila, Thailand</a>
+  <a href="mapping.html">Autonomous Mapping and Localizing Robot &rarr;</a>
+</div></section>
+
+</main>
+<footer class="site-foot">
+  <div class="wrap">
+    <span>Vishesh Konduru</span>
+    <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
+  </div>
+</footer>
+<script>
+(function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
+function go(){if(!done){done=true;hero.classList.add('go');}}
+if(!v){go();return;}
+function tick(){if(done)return;if(v.currentTime>=0.45)go();else requestAnimationFrame(tick);}
+v.addEventListener('playing',tick);if(!v.paused)tick();
+setTimeout(go,2500);})();
+(function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
+if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
+f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tables4U · Vishesh Konduru</title>
+<meta name="description" content="A restaurant reservation web app. Diners find a restaurant and book a table; owners manage their tables, hours and bookings.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/site.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="edge head-inner">
+    <a class="site-name" href="../index.html">Vishesh Konduru</a>
+    <nav class="site-nav"><a href="../index.html">Work</a><a href="../journey.html">Journey</a><a href="../about.html">About</a><a href="../docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
+  </div>
+</header>
+<main>
+
+<article class="wrap project-head">
+  <div class="article">
+    <h1>Tables4U</h1>
+    <p class="meta">Software Engineering at WPI, fall 2024. Team project.</p>
+    
+    <div class="links top-links"><a href="https://github.com/ronak-wani/Tables4u" class="">Code on GitHub</a></div>
+    <figure class="fig"><div class="todo">Screenshot of the app</div></figure><p>Tables4U has three kinds of users. Diners search for restaurants that are open on a given date and time, book a table and cancel if they need to. Restaurant owners set up their restaurant, add tables, set their hours, close specific days and see who is booked. An administrator can see every restaurant and pull availability reports.</p><h2>How it's built</h2><p>We designed it in UML first. The front end is Next.js, React and Tailwind CSS, deployed on Vercel. The back end is a set of REST APIs, each one an AWS Lambda function behind API Gateway, with the data in a MySQL database on Amazon RDS.</p>
+  </div>
+</article>
+<section><div class="wrap pager">
+  <a href="mapping.html">&larr; Autonomous Mapping and Localizing Robot</a>
+  <a href="heimdall.html">Heimdall &rarr;</a>
+</div></section>
+
+</main>
+<footer class="site-foot">
+  <div class="wrap">
+    <span>Vishesh Konduru</span>
+    <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
+  </div>
+</footer>
+<script>
+(function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
+function go(){if(!done){done=true;hero.classList.add('go');}}
+if(!v){go();return;}
+function tick(){if(done)return;if(v.currentTime>=0.45)go();else requestAnimationFrame(tick);}
+v.addEventListener('playing',tick);if(!v.paused)tick();
+setTimeout(go,2500);})();
+(function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
+if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
+f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+</script>
+</body>
+</html>
