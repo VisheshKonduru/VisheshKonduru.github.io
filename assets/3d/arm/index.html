@@ -3,49 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OpenManipulator-X: live inverse kinematics</title>
-<link rel="stylesheet" href="style.css">
+<title>Arm demo dev harness</title>
+<!-- Dev harness only. The real embed lives in the RBE-3001 project page (ui-b). -->
+<style>
+:root { --paper:#faf8f4; --ink:#16171a; --ink-2:#3d4047; --ink-3:#5f646c; --rule:#dedad2; --frame:#eeebe4; --accent:#1f5fae; --measure:62ch; }
+@media (prefers-color-scheme: dark) { :root { --paper:#121314; --ink:#eeece7; --ink-2:#c9c8c3; --ink-3:#a3a7ae; --rule:#2d2f33; --frame:#1d1f21; --accent:#8db8f2; } }
+body { margin:0; background:var(--paper); color:var(--ink); font:17px/1.6 system-ui, sans-serif; }
+main { max-width:960px; margin:24px auto; padding:0 20px; }
+figcaption { font-size:15px; color:var(--ink-2); padding-top:8px; }
+</style>
 <script type="importmap">
-{ "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-} }
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
 </script>
 </head>
 <body>
-<main class="arm-demo">
-  <header>
-    <h1>OpenManipulator-X, live inverse kinematics</h1>
-    <p>The 4-DOF arm from WPI RBE-3001. Drag the orange target (or use the sliders or arrow keys) and the arm solves geometric IK from the ROBOTIS URDF. Drag elsewhere to rotate the view.</p>
-  </header>
-  <div class="stage">
-    <div id="viewport" tabindex="0" role="application" aria-label="3D arm view. Arrow keys move the target, Page Up and Page Down change its height."></div>
-    <p id="loading" class="loading">Loading 3D model…</p>
-  </div>
-  <section class="panel" aria-label="Controls">
-    <div class="status" id="status" role="status" aria-live="polite">Reachable</div>
-    <table class="joints" aria-label="Joint angles">
-      <thead><tr><th scope="col">Joint</th><th scope="col">Angle</th><th scope="col">Limits</th></tr></thead>
-      <tbody>
-        <tr><th scope="row">1 base yaw</th><td id="q1">0.0°</td><td>−180° to 180°</td></tr>
-        <tr><th scope="row">2 shoulder</th><td id="q2">0.0°</td><td>−85.9° to 85.9°</td></tr>
-        <tr><th scope="row">3 elbow</th><td id="q3">0.0°</td><td>−85.9° to 80.2°</td></tr>
-        <tr><th scope="row">4 wrist</th><td id="q4">0.0°</td><td>−97.4° to 112.9°</td></tr>
-      </tbody>
-    </table>
-    <label><span>Target X <output id="ox">0</output> mm</span><input type="range" id="tx" min="-300" max="380" step="1"></label>
-    <label><span>Target Y <output id="oy">0</output> mm</span><input type="range" id="ty" min="-380" max="380" step="1"></label>
-    <label><span>Target height <output id="oz">0</output> mm</span><input type="range" id="tz" min="0" max="420" step="1"></label>
-    <label><span>Gripper pitch <output id="op">90</output>° below horizontal</span><input type="range" id="pitch" min="-90" max="90" step="1" value="90"></label>
-    <label><span>Gripper opening <output id="og">0</output> mm</span><input type="range" id="grip" min="-11" max="20" step="0.5" value="10"></label>
-    <div class="buttons">
-      <button type="button" id="pick">Pick a ball</button>
-      <button type="button" id="reset">Reset scene</button>
-      <label class="check"><input type="checkbox" id="board" checked> Board and balls</label>
-    </div>
-    <p class="note">Model: ROBOTIS open_manipulator_description (Apache-2.0). Joint origins, axes and limits are taken from its URDF.</p>
-  </section>
+<main>
+<figure class="fig"><div data-arm3d></div><figcaption>Live: the camera finds each ball, converts its position to the arm's frame, and the arm sorts it.</figcaption></figure>
 </main>
-<script type="module" src="main.js"></script>
+<script type="module" src="arm-demo.js"></script>
 </body>
 </html>
