@@ -176,7 +176,7 @@ export function createShell(root, opts) {
     const st = C.steps[C.i], t = target; if (!t) return;
     const r0 = root.getBoundingClientRect(), r = t.getBoundingClientRect();
     let ax = r.left + r.width / 2, ay = r.bottom;
-    if (st.at) { ax = r.left + r.width * st.at[0]; ay = r.top + r.height * st.at[1]; }
+    if (st.at) ax = r.left + r.width * st.at[0];   // never cover the spot the visitor has to click: sit below the target
     const bw = Math.min(300, root.clientWidth - 16);
     box.style.width = bw + 'px';
     let left = ax - r0.left - 28; left = Math.max(0, Math.min(root.clientWidth - bw, left));

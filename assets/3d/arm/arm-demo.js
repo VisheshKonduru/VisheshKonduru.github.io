@@ -402,7 +402,7 @@ async function start(root, ui) {
     ui.shell.set('err', errs.length ? (errs.reduce((a, b) => a + b, 0) / errs.length).toFixed(1) : '–');
     if (calInfoNums) { ui.shell.set('corners', calInfoNums.used + ' of ' + calInfoNums.total); }
     ui.shell.set('rms', errHist.length ? errHist[errHist.length - 1].v.toFixed(2) : '–');
-    if (!busy && mode === 'sort' && !drag) {
+    if (!busy && mode === 'sort' && !drag && performance.now() > holdUntil) {
       const cnt = {}; ok.forEach(b => cnt[b.colour] = (cnt[b.colour] || 0) + 1);
       const parts = V.COLORS.filter(c => cnt[c]).map(c => `${cnt[c]} ${c}`);
       status(ok.length ? `Detected ${ok.length} ball${ok.length === 1 ? '' : 's'}: ${parts.join(', ')}` : 'No balls detected on the board');
@@ -514,7 +514,10 @@ async function start(root, ui) {
   // ---------- modes ----------
   let mode = 'sort';
   const sorting = { current: null };
+  let holdUntil = 0;
   function status(t) { ui.shell.say(t); }
+  // Messages about an action stay up for a few seconds before the live detection count returns.
+  function note(t) { holdUntil = performance.now() + 3500; ui.shell.say(t); }
   function setBusy(b) {
     busy = b;
     [ui.sort, ui.scatter, ui.recal, ui.nudge].forEach(x => x && (x.disabled = b));
@@ -563,7 +566,7 @@ async function start(root, ui) {
       await park();
       status('Reading the board');
       const seen = (await waitSettled()).filter(b => onBoard(b.base[0], b.base[1])).map(b => ({ colour: b.colour, base: b.base }));
-      if (!seen.length) { status('No balls detected on the board'); return; }
+      if (!seen.length) { note('No balls detected on the board'); return; }
       const count = { red: 0, orange: 0, yellow: 0, green: 0 }; balls.forEach(b => { if (b.userData.where === 'zone') count[b.userData.colour]++; });
       let done = 0, missed = 0;
       for (const [k, d] of seen.entries()) {
@@ -578,7 +581,7 @@ async function start(root, ui) {
       }
       sorting.current = null;
       await park();
-      status(`Sorted ${done} of ${seen.length}${missed ? `, ${missed} missed` : ''}`);
+      note(`Sorted ${done} of ${seen.length}${missed ? `, ${missed} missed` : ''}`);
     } catch (e) { if (e !== ABORT) throw e; }
     finally { if (g === gen) { sorting.current = null; setBusy(false); } }
   }
@@ -664,7 +667,7 @@ async function start(root, ui) {
     camPose = { C: [...CAM_C], T: [...CAM_T] }; applyCamPose(); setCal(cal0, calInfo0); nudges = 0; lightIdx = LIGHTS.length - 1; cycleLight();
     errHist.length = 0; errHist.push({ v: calInfo0.rms, what: 'calibrated' });
     q = [...PARK]; grip = 0.01; applyPose();
-    if (mode === 'ttt') tttReset(); else { defaultBalls(); status('Reset'); }
+    if (mode === 'ttt') tttReset(); else { defaultBalls(); note('Reset'); }
   }
   // Perturbations
   let lightIdx = 0, nudges = 0;
@@ -685,13 +688,13 @@ async function start(root, ui) {
     capture(true); renderedVer = -1; balls.forEach((b, i) => b.visible = vis[i]); base.visible = av;
     const e = V.reprojError(und, K, cal.H);
     if (e != null) errHist.push({ v: e, what: 'nudged' });
-    status(`Camera moved ${nudges} time${nudges > 1 ? 's' : ''}, calibration unchanged`);
+    note(`Camera moved ${nudges} time${nudges > 1 ? 's' : ''}, calibration unchanged`);
   }
   function recal() {
     if (busy) return;
     const r = calibrate((b) => V.applyH(cal.H, b[0], b[1]), true);
     if (r) { errHist.push({ v: r.rms, what: 'recalibrated' }); nudges = 0; }
-    status(r ? `Calibrated, ${r.used} corners` : 'Calibration failed, too few corners found');
+    note(r ? `Calibrated, ${r.used} corners` : 'Calibration failed, too few corners found');
   }
   function toggleFrames() { frames.visible = !frames.visible; api.frames = frames.visible; if (ui.framesBtn) ui.framesBtn.setAttribute('aria-pressed', String(frames.visible)); dirty = true; }
   Object.assign(api, { setMode, runSort, scatter, reset, cycleLight, nudge, recal, toggleFrames, redraw: drawInset, onColour: () => updateGhost() });
