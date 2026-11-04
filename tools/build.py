@@ -13,7 +13,7 @@ LINKEDIN = "https://www.linkedin.com/in/visheshkonduru"
 GITHUB = "https://github.com/VisheshKonduru"
 RESUME = "docs/Vishesh_Konduru_Resume.pdf"
 
-NAV = [("index.html", "Work"), ("journey.html", "Journey"), ("about.html", "About")]
+NAV = [("index.html", "Work"), ("activities.html", "Activities"), ("about.html", "About")]
 
 
 def page(title, body, current, depth=0, description=""):
@@ -237,51 +237,104 @@ def index_page():
     return page("Vishesh Konduru", body, "index.html")
 
 
-def journey_page():
-    def stop(year, title, sub, text, figs):
-        return f"""<div class="stop">
-  <div class="year">{year}</div>
-  <div>
-    <h2>{title}</h2>
-    <p class="sub">{sub}</p>
-    <div class="prose">{text}</div>
-    <div class="gallery">{"".join(figs)}</div>
-  </div>
-</div>"""
+from activities_content import ACTIVITIES  # noqa: E402
 
-    stops = [
-        stop("High school", "FRC and VEX", "Where it started",
-             "<p>I started building robots in high school on FRC and VEX teams.</p>",
-             ['<figure class="figure"><video src="assets/video/hs_outreach.mp4" autoplay muted loop playsinline preload="metadata"></video><figcaption>FRC Team 3735 VorTX at Siemens Energy Day.</figcaption></figure>',
-              '<figure class="figure"><video src="assets/video/hs_frc_climb.mp4" autoplay muted loop playsinline preload="metadata"></video><figcaption>Our 2021-22 FRC robot climbing in the endgame.</figcaption></figure>',
-              todo("Photo: high school VEX robot")]),
-        stop("2023 to 2024", "WPI VEX U, Over Under", "First season in college",
-             "<p>Joined WPI's VEX U team in April 2023.</p>",
-             [todo("Photo: 2023-24 robot"), todo("Video or photo: 2023-24 season")]),
-        stop("2024 to 2025", "WPI VEX U, High Stakes", "",
-             "<p>A short interview about our endgame climb mechanism.</p>",
-             ['<figure class="figure"><button class="yt short" type="button" data-id="1kmXXycRsSI" data-title="VEX U 2024-25 endgame climb interview" aria-label="Play video: VEX U 2024-25 endgame climb interview"><img src="https://i.ytimg.com/vi/1kmXXycRsSI/hqdefault.jpg" alt="" width="480" height="360"><span>Play video</span></button></figure>',
-              '<figure class="figure"><video src="assets/video/vex_worlds.mp4" autoplay muted loop playsinline preload="metadata"></video><figcaption>A match from the driver&rsquo;s spot, May 2025.</figcaption></figure>']),
-        stop("2025 to 2026", "WPI VEX U, Push Back", "and the autonomous robot",
-             '<p>Our MQP team built a robot that plays the whole match by itself. <a href="projects/mqp.html">Read about the robot</a>.</p>',
-             [img("assets/img/mqp/robot.jpg", "The autonomous robot.", depth=0),
-              todo("Photo: VEX U World Championship")]),
-        stop("Early 2026", "Thailand", "Interactive Qualifying Project",
-             '<p>In Bangkok and Angsila, working on oyster shell waste with students from Chulalongkorn University. <a href="projects/iqp.html">Read about the project</a>.</p>',
-             [img("assets/img/iqp/farm.jpg", "Oyster farm off Angsila.", depth=0),
-              img("assets/img/iqp/interview.jpg", "Field interviews.", depth=0)]),
-        stop("2026", "Cavall Labs and NeurIPS", "",
-             '<p>Started at Cavall Labs in March 2026. Our paper on Heimdall was accepted to the NeurIPS 2026 ML4Molecules workshop. <a href="projects/heimdall.html">Read about Heimdall</a>.</p>',
-             []),
-    ]
-    body = f"""
-<div class="wrap journey-head">
-  <h1>Robots, mostly, since high school</h1>
-  <p class="lede">The teams, seasons and trips that got me here.</p>
-</div>
-<section><div class="wrap timeline">{"".join(stops)}</div></section>
+JOURNEY_REDIRECT = """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Activities · Vishesh Konduru</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="activities.html">
+<script>location.replace('activities.html' + location.hash);</script>
+<meta http-equiv="refresh" content="0; url=activities.html">
+</head>
+<body>
+<p>This page moved to <a href="activities.html">Activities</a>.</p>
+</body>
+</html>
 """
-    return page("Journey · Vishesh Konduru", body, "journey.html")
+
+
+def _ratio(src):
+    from PIL import Image
+    try:
+        w, h = Image.open(ROOT / src).size
+        return w / h
+    except Exception:
+        return 4 / 3
+
+
+def _media(m):
+    kind, src, cap = m
+    if kind == "img":
+        return img(src, cap, depth=0)
+    if kind == "video":
+        return (f'<figure class="figure"><video src="{src}" controls muted loop playsinline preload="metadata"></video>'
+                f'<figcaption>{cap}</figcaption></figure>')
+    if kind == "yt":
+        return (f'<figure class="figure"><button class="yt short" type="button" data-id="{src}" data-title="{cap}" '
+                f'aria-label="Play video: {cap}"><img src="https://i.ytimg.com/vi/{src}/hqdefault.jpg" alt="" width="480" height="360">'
+                f'<span>Play video</span></button><figcaption>{cap}</figcaption></figure>')
+    raise ValueError(kind)
+
+
+def activities_page():
+    tiles, panels = [], []
+    # Placeholder shapes vary so empty slots do not read as a uniform grid.
+    shapes = [3 / 2, 4 / 5, 1.0, 4 / 3, 5 / 4]
+    for n, a in enumerate(ACTIVITIES):
+        if a["cover"]:
+            src, alt = a["cover"]
+            r = _ratio(src)
+            media = f'<img class="jg-media" src="{src}" alt="" data-alt="{alt}">'
+        else:
+            r = shapes[n % len(shapes)]
+            media = f'<div class="jg-media todo">Owner TODO: photo</div>'
+        tiles.append(
+            f'<li class="jg-item" style="--r:{r:.4f}" data-r="{r:.4f}">'
+            f'<a class="jg-link" href="#{a["id"]}" data-act="{a["id"]}" aria-expanded="false">'
+            f'<span class="jg-frame">{media}</span><span class="jg-label">{a["label"]}</span></a></li>')
+        meta = "".join(
+            f'<p class="act-{k}">{v}</p>' for k, v in (("years", a["years"]), ("role", a["role"])) if v)
+        honors = ('<ul class="honors">' + "".join(f"<li>{h}</li>" for h in a["honors"]) + "</ul>") if a["honors"] else ""
+        missing = ""
+        if a["todo"] or not a["years"] or not a["role"]:
+            items = list(a["todo"])
+            missing = todo("Owner TODO: " + "; ".join(items), "todo-text") if items else ""
+        more = "".join(_media(m) for m in a["more"])
+        panels.append(f"""<template id="act-{a["id"]}" data-label="{a["label"]}">
+<h2 class="act-title" id="act-title">{a["title"]}</h2>
+{meta}{honors}
+<div class="prose">{a["text"]}</div>
+{missing}
+{f'<div class="act-more">{more}</div>' if more else ""}
+</template>""")
+    body = f"""
+<div class="wrap acts-head">
+  <h1>Activities</h1>
+  <p class="lede">Teams, clubs and events outside class.</p>
+</div>
+<section class="acts"><div class="wrap">
+  <ul class="jg" aria-label="Activities">{"".join(tiles)}</ul>
+</div></section>
+{"".join(panels)}
+<template id="act-shell"><li class="act-panel"><div class="act-inner">
+  <figure class="act-cover"></figure>
+  <div class="act-text">
+    <div class="act-bar">
+      <button type="button" class="act-btn act-prev" aria-label="Previous activity">&larr;<span class="act-btn-l">Previous</span></button>
+      <button type="button" class="act-btn act-next" aria-label="Next activity"><span class="act-btn-l">Next</span>&rarr;</button>
+      <button type="button" class="act-btn act-close">Close</button>
+    </div>
+    <div class="act-body"></div>
+  </div>
+</div></li></template>
+<dialog class="lb" aria-label="Photo"><button type="button" class="act-btn lb-close">Close</button><img alt=""></dialog>
+<script src="assets/js/activities.js" defer></script>
+"""
+    return page("Activities · Vishesh Konduru", body, "activities.html",
+                description="Teams, clubs and events outside class: VEX U, FRC, orchestra, outreach and more.")
 
 
 def about_page():
@@ -388,7 +441,8 @@ def write(path, html):
 
 def main():
     write(ROOT / "index.html", index_page())
-    write(ROOT / "journey.html", journey_page())
+    write(ROOT / "activities.html", activities_page())
+    (ROOT / "journey.html").write_text(JOURNEY_REDIRECT, encoding="utf-8")
     write(ROOT / "about.html", about_page())
     (ROOT / "projects").mkdir(exist_ok=True)
     n = len(PROJECTS)
