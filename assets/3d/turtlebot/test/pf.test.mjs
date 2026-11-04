@@ -7,7 +7,7 @@ let ok = 0, wrong = 0; const times = [];
 for (let t = 0; t < trials; t++) {
   const W = new LocWorld(3 + (t % 10)); W.auto = false; W.goal = null;
   W.rand = (() => { let s = 1000 + t; return () => ((s = (s * 16807) % 2147483647) / 2147483647); })();
-  W.kidnap();
+  { const [x, y] = W.randomFree(); W.place(x, y, (W.rand() * 2 - 1) * Math.PI); W.state = 'localizing'; }
   let hit = null, falseConv = false;
   for (let time = 0; time < limit; time += dt) {
     W.step(dt);

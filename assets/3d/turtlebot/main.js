@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { World, SPEC, SCAN_HEIGHT } from './sim.js';
+import { World, SPEC, SCAN_HEIGHT, castRay } from './sim.js';
+import { linePlot, barPlot } from '../demo-shell.js';
 import { LocWorld } from './loc.js';
 
 const THEMES = {
@@ -13,7 +14,8 @@ const PARTICLE_COLOR = 0xff1900;  // RViz PoseArray default colour (255, 25, 0)
 const POSE_COLOR = 0x2a63d4, COV_COLOR = 0xb03fc8;
 const MAP_HZ = 5, OVERLAY_HZ = 10;
 
-export function start(stage) {
+export function start(shell) {
+  const stage = shell.view;
   const qs = new URLSearchParams(location.search);
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const dark = matchMedia('(prefers-color-scheme: dark)');
@@ -25,11 +27,9 @@ export function start(stage) {
 
   // ---- renderer / quality ------------------------------------------------------
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  const quality = { level: 0, dpr: Math.min(devicePixelRatio, 1.5) };
+  const quality = { level: 0, dpr: Math.min(devicePixelRatio, 1.25) };
   renderer.setPixelRatio(quality.dpr);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;  // hardware-filtered PCF, cheaper than PCFSoft
-  renderer.shadowMap.autoUpdate = false;         // walls are static; re-render shadows only when the robot moves
+  renderer.shadowMap.enabled = false;            // no shadow pass: flat RViz-style shading is cheaper on integrated GPUs
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   stage.querySelector('#loading')?.remove();
   stage.appendChild(renderer.domElement);
@@ -41,7 +41,6 @@ export function start(stage) {
   scene.add(ros);
   scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8a8a, 1.1));
   const sun = new THREE.DirectionalLight(0xffffff, 2.4);
-  sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.bias = -0.0005;
   sun.shadow.normalBias = 0.015;
@@ -55,8 +54,8 @@ export function start(stage) {
   controls.maxPolarAngle = THREE.MathUtils.degToRad(82);
 
   // ---- static world --------------------------------------------------------------
-  const floorMat = new THREE.MeshStandardMaterial({ roughness: 0.95 });
-  const wallMat = new THREE.MeshStandardMaterial({ roughness: 0.85 });
+  const floorMat = new THREE.MeshLambertMaterial();
+  const wallMat = new THREE.MeshLambertMaterial();
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), floorMat);
   floor.receiveShadow = true;
   ros.add(floor);
@@ -135,9 +134,9 @@ export function start(stage) {
   scanLink.position.set(SPEC.scanOffset.x, SPEC.scanOffset.y, SPEC.scanOffset.z);
   baseLink.add(wheelL, wheelR, scanLink);
   ros.add(robot);
-  const plateMat = new THREE.MeshStandardMaterial({ color: 0x2f3033, roughness: 0.55, metalness: 0.15 });
-  const tireMat = new THREE.MeshStandardMaterial({ color: 0x0e0e0f, roughness: 0.9 });
-  const ldsMat = new THREE.MeshStandardMaterial({ color: 0x1b1c1e, roughness: 0.45, metalness: 0.2 });
+  const plateMat = new THREE.MeshLambertMaterial({ color: 0x2f3033 });
+  const tireMat = new THREE.MeshLambertMaterial({ color: 0x0e0e0f });
+  const ldsMat = new THREE.MeshLambertMaterial({ color: 0x1b1c1e });
   // invisible pick volume for dragging (the robot's footprint cylinder)
   const pick = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.2, 16), new THREE.MeshBasicMaterial({ visible: false }));
   pick.rotation.x = Math.PI / 2; pick.position.z = 0.1;
@@ -170,14 +169,35 @@ export function start(stage) {
   const goalMat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
   const goal = new THREE.Mesh(new THREE.RingGeometry(0.06, 0.085, 32), goalMat);
   goal.visible = false; ros.add(goal);
+  // Localization: ghost robot (footprint and heading) while dropping, and a labelled goal flag.
+  const inkMat = new THREE.MeshBasicMaterial({ color: 0x16171a, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false });
+  const ghost = new THREE.Group();
+  ghost.add(new THREE.Mesh(new THREE.RingGeometry(SPEC.footprint.r - 0.012, SPEC.footprint.r, 40), inkMat));
+  { const sh = new THREE.Shape(); sh.moveTo(0.13, 0); sh.lineTo(0.05, 0.04); sh.lineTo(0.05, -0.04); sh.closePath(); ghost.add(new THREE.Mesh(new THREE.ShapeGeometry(sh), inkMat)); }
+  ghost.position.z = 0.01; ghost.visible = false; ros.add(ghost);
+  function placeGhost(p, th, ok) { ghost.visible = true; ghost.position.set(p[0], p[1], 0.01); ghost.rotation.z = th; inkMat.opacity = ok ? 0.75 : 0.25; needsRender = true; kick(); }
+  const flagMat = new THREE.MeshBasicMaterial({ color: 0x1f8a2e, side: THREE.DoubleSide });
+  const goalFlag = new THREE.Group();
+  { const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.34, 8), new THREE.MeshBasicMaterial({ color: 0x16171a })); pole.rotation.x = Math.PI / 2; pole.position.z = 0.17; goalFlag.add(pole);
+    const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(0.16, -0.05); sh.lineTo(0, -0.1); sh.closePath();
+    const f = new THREE.Mesh(new THREE.ShapeGeometry(sh), flagMat); f.rotation.x = Math.PI / 2; f.position.set(0.008, 0, 0.34); goalFlag.add(f);
+    const cv = document.createElement('canvas'); cv.width = 128; cv.height = 48; const cx = cv.getContext('2d');
+    cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, 128, 48); cx.strokeStyle = '#16171a'; cx.lineWidth = 2; cx.strokeRect(1, 1, 126, 46);
+    cx.fillStyle = '#16171a'; cx.font = '600 30px system-ui, sans-serif'; cx.textAlign = 'center'; cx.textBaseline = 'middle'; cx.fillText('Goal', 64, 25);
+    const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+    const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false })); label.scale.set(0.32, 0.12, 1); label.position.set(0, 0, 0.46); label.renderOrder = 9; goalFlag.add(label);
+    const base = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.07, 32), flagMat); base.position.z = 0.006; goalFlag.add(base); }
+  const goalPick = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.5, 12), new THREE.MeshBasicMaterial({ visible: false }));
+  goalPick.rotation.x = Math.PI / 2; goalPick.position.z = 0.25; goalFlag.add(goalPick);
+  goalFlag.visible = false; ros.add(goalFlag);
+  function placeFlag() { const w = worldB; goalFlag.visible = !!(w && w.goal); if (w && w.goal) goalFlag.position.set(w.goal[0], w.goal[1], 0); needsRender = true; kick(); }
   const targetMat = new THREE.MeshBasicMaterial({ color: 0xe07a10, side: THREE.DoubleSide });
   const target = new THREE.Mesh(new THREE.CircleGeometry(0.05, 24), targetMat);
   target.visible = false; ros.add(target);
 
   // particle cloud: one instanced flat arrow, as RViz PoseArray "Arrow (Flat)"
   const arrowShape = new THREE.Shape();
-  arrowShape.moveTo(0.07, 0); arrowShape.lineTo(0.035, 0.018); arrowShape.lineTo(0.035, 0.006); arrowShape.lineTo(-0.03, 0.006);
-  arrowShape.lineTo(-0.03, -0.006); arrowShape.lineTo(0.035, -0.006); arrowShape.lineTo(0.035, -0.018); arrowShape.closePath();
+  arrowShape.moveTo(0.06, 0); arrowShape.lineTo(-0.03, 0.02); arrowShape.lineTo(-0.03, -0.02); arrowShape.closePath();   // one triangle per particle
   const MAXP = 4000;
   const particles = new THREE.InstancedMesh(new THREE.ShapeGeometry(arrowShape), new THREE.MeshBasicMaterial({ color: PARTICLE_COLOR, side: THREE.DoubleSide }), MAXP);
   particles.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -222,7 +242,9 @@ export function start(stage) {
 
   function updateDynamic(now) {
     const w = W(), r = w.robot;
-    if (!dragging) { robot.position.set(r.x, r.y, 0); robot.rotation.z = r.th; }
+    robot.visible = scene_ === 'A' || w.placed;
+    if (scene_ === 'B') { particles.visible = estGroup.visible = ellipse.visible = w.placed; }
+    if (dragging !== 'robot') { robot.position.set(r.x, r.y, 0); robot.rotation.z = r.th; }
     wheelL.rotation.y = r.phiL; wheelR.rotation.y = r.phiR;
     let n = 0, m = 0;
     if (scene_ === 'A') {
@@ -243,11 +265,11 @@ export function start(stage) {
         if (rays.o.visible) { rays.a.set([lx, ly, SCAN_HEIGHT, hx, hy, SCAN_HEIGHT], 6 * m); m++; }
       }
       const pf = w.pf;
-      if (w.pfUpdates !== pfDrawn || w.scans !== pfDrawn2) {
+      if (w.pf.version !== pfDrawn) {
         const cnt = Math.min(pf.n, MAXP);
         for (let i = 0; i < cnt; i++) { q.setFromAxisAngle(zAxis, pf.th[i]); m4.compose(v3.set(pf.x[i], pf.y[i], 0), q, one); particles.setMatrixAt(i, m4); }
         particles.count = cnt; particles.instanceMatrix.needsUpdate = true;
-        pfDrawn = w.pfUpdates; pfDrawn2 = w.scans;
+        pfDrawn = w.pf.version;
       }
       estGroup.position.set(e.x, e.y, 0.014); estGroup.rotation.z = e.th;
       const E = pf.est, tr = (E.cxx + E.cyy) / 2, df = Math.sqrt(((E.cxx - E.cyy) / 2) ** 2 + E.cxy ** 2);
@@ -258,7 +280,7 @@ export function start(stage) {
     pts.g.setDrawRange(0, n); pts.g.attributes.position.needsUpdate = true;
     rays.g.setDrawRange(0, m * 2); rays.g.attributes.position.needsUpdate = true;
     if (w.pathVersion !== pathVer || !w.path) { setPath(w.path || []); pathVer = w.pathVersion; }
-    const showGoal = scene_ === 'B' ? !!w.goal : !!w.goal && w.mode !== 'explore';
+    const showGoal = scene_ === 'B' ? false : !!w.goal && w.mode !== 'explore';
     goal.visible = showGoal; if (w.goal) goal.position.set(w.goal[0], w.goal[1], 0.008);
     if (scene_ === 'A') {
       const busy = drawSearchMaybe(now);
@@ -302,15 +324,15 @@ export function start(stage) {
     if (sc === 'B') {
       // known map: the one scene A finished, if it finished this maze; otherwise the pre-mapped maze
       const done = (worldA.mode === 'final' || worldA.mode === 'done') ? cloneGrid(worldA.grid) : null;
-      if (!worldB || worldB.seed !== worldA.seed) worldB = new LocWorld(worldA.seed, done);
+      if (!worldB || worldB.seed !== worldA.seed) { worldB = new LocWorld(worldA.seed, done); worldB.mapGiven = done; }
     }
     const isB = sc === 'B';
     particles.visible = estGroup.visible = ellipse.visible = isB;
     ovL.mesh.visible = !isB;
     pathVer = -1; pfDrawn = -1;
-    $('hint').textContent = isB ? 'Drag the robot to kidnap it. Click the floor to set a destination.' : 'Click the floor to send a goal. WASD or arrows to drive.';
-    for (const t of tabs) { const on = t.dataset.scene === sc; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; }
-    buildWorld(); needsRender = true; kick();
+    goalFlag.visible = false; ghost.visible = false; if (isB) placeFlag();
+    if (playing) setPlaying(false);
+    buildWorld(); buildFlow(); showPanels(); shell.startCoach(); needsRender = true; kick();
   }
   function cloneGrid(g) {
     const c = Object.assign(Object.create(Object.getPrototypeOf(g)), g);
@@ -319,62 +341,91 @@ export function start(stage) {
     return c;
   }
 
-  // ---- UI ----------------------------------------------------------------------------------
-  const $ = id => document.getElementById(id);
-  const btnPlay = $('play'), statusEl = $('status');
-  const tabs = [...document.querySelectorAll('[role=tab]')];
-  tabs.forEach(t => {
-    t.onclick = () => showScene(t.dataset.scene);
-    t.onkeydown = e => {
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-      const i = (tabs.indexOf(t) + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
-      tabs[i].focus(); tabs[i].click();
-    };
-  });
-  let playing = !reduced;
-  const setPlaying = p => { playing = p; btnPlay.textContent = p ? 'Pause' : 'Play'; kick(); };
-  btnPlay.onclick = () => setPlaying(!playing);
-  $('reset').onclick = () => {
-    if (scene_ === 'A') worldA.reset(worldA.seed);
-    else { worldB.kidnap(); worldB.goal = worldB.randomFree(1.5); }
-    buildWorld(); needsRender = true; kick();
-  };
-  const toggle = (btn, obj) => { btn.onclick = () => { const on = btn.getAttribute('aria-pressed') !== 'true'; btn.setAttribute('aria-pressed', on); obj.visible = on; needsRender = true; kick(); }; };
-  toggle($('map'), mapL.mesh);
-  toggle($('rays'), rays.o);
+  // ---- UI (built by the shared demo shell) -------------------------------------------------------
+  let playing = false;
+  const B = {};                                   // flow buttons of the current scene
+  function buildFlow() {
+    let b;
+    if (scene_ === 'A') {
+      b = shell.setFlow([
+        { primary: playing ? 'Pause' : worldA.time > 0 ? 'Resume' : 'Start mapping', id: 'play', onClick: () => { shell.done('start'); setPlaying(!playing); } },
+        { step: 'Click the floor to send a goal', id: 'goal' }, { step: 'Drive with W A S D', id: 'drive' }],
+        [{ label: 'Reset', id: 'reset', onClick: resetScene }, { label: 'Show map', id: 'map', pressed: mapL.mesh.visible, onClick: () => toggle('map', mapL.mesh) },
+         { label: 'Show rays', id: 'rays', pressed: rays.o.visible, onClick: () => toggle('rays', rays.o) }]);
+    } else {
+      b = shell.setFlow([
+        { step: 'Drop robot', id: 'drop' }, { step: 'Set goal', id: 'goal' },
+        { primary: playing ? 'Pause' : worldB && worldB.state !== 'ready' && worldB.state !== 'idle' ? 'Resume' : 'Start', id: 'start', onClick: startB }],
+        [{ label: 'Reset', id: 'reset', onClick: resetScene }, { label: 'Show rays', id: 'rays', pressed: rays.o.visible, onClick: () => toggle('rays', rays.o) }]);
+    }
+    Object.keys(B).forEach(k => delete B[k]); Object.assign(B, b);
+    stepB();
+  }
+  // Localization: which step the visitor is on.
+  function stepB() {
+    if (scene_ !== 'B') { shell.current(null); return; }
+    const w = worldB, step = !w.placed ? 'drop' : !w.goal ? 'goal' : w.state === 'ready' ? 'start' : null;
+    shell.current(step);
+    if (B.start) B.start.disabled = !(w.placed && w.goal);
+  }
+  function startB() {
+    const w = worldB; if (!w.placed || !w.goal) return;
+    if (w.state === 'ready') { w.start(); shell.done('start'); }
+    setPlaying(!playing); stepB();
+  }
+  function setPlaying(p) {
+    playing = p;
+    const btn = scene_ === 'A' ? B.play : B.start;
+    if (btn) btn.textContent = p ? 'Pause' : scene_ === 'A' ? (worldA.time > 0 ? 'Resume' : 'Start mapping') : (worldB.state === 'ready' ? 'Start' : 'Resume');
+    needsRender = true; kick();
+  }
+  function toggle(id, obj) { obj.visible = !obj.visible; B[id] && B[id].setAttribute('aria-pressed', String(obj.visible)); needsRender = true; kick(); }
+  function resetScene() {
+    setPlaying(false);
+    if (scene_ === 'A') { worldA.reset(worldA.seed); covHist.length = 0; nodeHist.length = 0; }
+    else { worldB = new LocWorld(worldA.seed, worldB.mapGiven); goalFlag.visible = false; }
+    buildWorld(); buildFlow(); needsRender = true; kick();
+  }
 
-  // pointer: drag the robot (scene B) or click a goal (both)
+  // pointer: scene A click = goal. Scene B: drop the robot (drag sets its heading), set or drag the goal, drag the robot.
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
-  let down = null, dragging = false;
+  let down = null, dragging = null;
   const floorHit = e => {
     const rect = renderer.domElement.getBoundingClientRect();
     ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     ray.setFromCamera(ndc, camera);
     return ray;
   };
+  const floorXY = e => { const h = floorHit(e).intersectObject(floor)[0]; return h ? [h.point.x, -h.point.z] : null; };
   renderer.domElement.addEventListener('pointerdown', e => {
-    down = [e.clientX, e.clientY];
+    down = [e.clientX, e.clientY]; const w = W();
     if (scene_ !== 'B') return;
-    if (floorHit(e).intersectObject(pick).length) { dragging = true; controls.enabled = false; renderer.domElement.setPointerCapture(e.pointerId); }
+    const p = floorXY(e);
+    if (!w.placed) { if (p && w.freeOk(p[0], p[1])) { dragging = 'drop'; ghost.userData.at = p; ghost.userData.th = 0; controls.enabled = false; renderer.domElement.setPointerCapture(e.pointerId); } return; }
+    if (w.goal && goalFlag.visible && floorHit(e).intersectObject(goalPick).length) { dragging = 'goal'; }
+    else if (floorHit(e).intersectObject(pick).length) { dragging = 'robot'; }
+    if (dragging) { controls.enabled = false; renderer.domElement.setPointerCapture(e.pointerId); }
   });
   renderer.domElement.addEventListener('pointermove', e => {
-    if (!dragging) return;
-    const h = floorHit(e).intersectObject(floor)[0];
-    if (h) { robot.position.set(h.point.x, -h.point.z, 0); needsRender = true; kick(); }
+    if (scene_ !== 'B') return;
+    const p = floorXY(e), w = worldB;
+    if (dragging === 'drop') { const a = ghost.userData.at; if (p && Math.hypot(p[0] - a[0], p[1] - a[1]) > 0.05) ghost.userData.th = Math.atan2(p[1] - a[1], p[0] - a[0]); placeGhost(a, ghost.userData.th, true); }
+    else if (dragging === 'goal') { if (p && w.freeOk(p[0], p[1])) { w.setGoal(p[0], p[1]); placeFlag(); } }
+    else if (dragging === 'robot') { if (p) { robot.position.set(p[0], p[1], 0); needsRender = true; kick(); } }
+    else if (!w.placed) { if (p) placeGhost(p, 0, w.freeOk(p[0], p[1])); }
+    else if (!w.goal) { if (p) { goalFlag.visible = w.freeOk(p[0], p[1]); goalFlag.position.set(p[0], p[1], 0); goalFlag.userData.preview = true; needsRender = true; kick(); } }
   });
+  renderer.domElement.addEventListener('pointerleave', () => { if (scene_ === 'B' && !dragging) { if (!worldB.placed) ghost.visible = false; if (!worldB.goal) goalFlag.visible = false; needsRender = true; kick(); } });
   renderer.domElement.addEventListener('pointerup', e => {
-    if (dragging) {
-      dragging = false; controls.enabled = true;
-      const x = robot.position.x, y = robot.position.y;
-      if (worldB.freeOk(x, y)) { worldB.kidnap(x, y, worldB.robot.th); worldB.status = 'Kidnapped: re-localizing'; }
-      needsRender = true; kick(); return;
-    }
+    const w = W(), was = dragging; dragging = null; controls.enabled = true;
+    if (was === 'drop') { const a = ghost.userData.at; ghost.visible = false; w.place(a[0], a[1], ghost.userData.th); robot.visible = true; shell.done('drop'); stepB(); needsRender = true; kick(); return; }
+    if (was === 'goal') { stepB(); return; }
+    if (was === 'robot') { const x = robot.position.x, y = robot.position.y; if (w.freeOk(x, y)) { w.kidnap(x, y, w.robot.th); if (w.state === 'ready') w.state = 'ready'; } needsRender = true; kick(); return; }
     if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
-    const h = floorHit(e).intersectObject(floor)[0];
-    if (!h) return;
-    W().setGoal(h.point.x, -h.point.z);
-    if (!playing) setPlaying(true);
-    kick();
+    const p = floorXY(e); if (!p) return;
+    if (scene_ === 'A') { w.setGoal(p[0], p[1]); shell.done('goal'); if (!playing) setPlaying(true); kick(); return; }
+    if (w.placed && !w.goal && w.freeOk(p[0], p[1])) { w.setGoal(p[0], p[1]); goalFlag.userData.preview = false; placeFlag(); shell.done('goal'); stepB(); }
+    else if (w.placed && w.goal && w.state !== 'ready' && w.freeOk(p[0], p[1])) { w.setGoal(p[0], p[1]); placeFlag(); }
   });
   // teleop (scene A)
   const keys = new Set();
@@ -391,6 +442,89 @@ export function start(stage) {
   });
   stage.addEventListener('keyup', e => { const k = KEYMAP[e.key.toLowerCase()]; if (k) { keys.delete(k); teleop(); } });
   stage.addEventListener('blur', () => { keys.clear(); teleop(); });
+
+  // ---- live visuals (at most 10 Hz) and numbers ----------------------------------------------
+  const covHist = [], nodeHist = []; let lastViz = -1, lastCov = 0;
+  const pCov = shell.panel('Map coverage over time (%)', 110), pNodes = shell.panel('A* nodes expanded per plan', 110);
+  const pSpread = shell.panel('Particle spread over time (m)', 110), pW = shell.panel('Particle weights (count per weight bin)', 110);
+  const pScan = shell.panel('Lidar scan (red) and scan expected at the estimate (line)', 200), pEss = shell.panel('Effective sample size (% of particles)', 90);
+  shell.readout([
+    { id: 'lidar', title: 'Lidar', items: [
+      { id: 'rays', label: 'Rays per scan', desc: 'LDS-01: one ray per degree.' }, { id: 'hz', label: 'Scan rate', unit: 'Hz' }, { id: 'range', label: 'Range', unit: 'm' }] },
+    { id: 'map', title: 'Map', items: [
+      { id: 'cov', label: 'Coverage', unit: '%', desc: 'Share of the maze floor the occupancy grid has seen.' }, { id: 'cell', label: 'Cell size', unit: 'm' }] },
+    { id: 'path', title: 'Path', items: [
+      { id: 'plen', label: 'A* path length', unit: 'm' }, { id: 'nodes', label: 'A* nodes expanded', desc: 'Grid cells the last search closed.' }] },
+    { id: 'filter', title: 'Particle filter', items: [
+      { id: 'np', label: 'Particles', desc: 'Pose guesses the filter is tracking (KLD sampling sets the count).' },
+      { id: 'spread', label: 'Spread', unit: 'm', desc: 'Standard deviation of the heaviest cluster along its long axis.' },
+      { id: 'ess', label: 'Effective sample size', unit: '%', desc: '1 / sum of squared weights, as a share of the particle count.' },
+      { id: 'upd', label: 'Filter updates' }] },
+  ]);
+  shell.set('rays', SPEC.lidar.samples); shell.set('hz', SPEC.lidar.hz); shell.set('range', `${SPEC.lidar.rangeMin} to ${SPEC.lidar.rangeMax}`);
+  function coverage() {
+    const g = worldA.grid, m = worldA.maze; let seen = 0, tot = 0;
+    for (let j = 0; j < g.h; j++) for (let i = 0; i < g.w; i++) {
+      const x = g.originX + (i + 0.5) * g.res, y = g.originY + (j + 0.5) * g.res;
+      if (x < 0 || y < 0 || x > m.sizeX || y > m.sizeY) continue; tot++; if (g.seen[j * g.w + i]) seen++;
+    }
+    return 100 * seen / tot;
+  }
+  function viz(now) {
+    if (scene_ === 'A') {
+      const w = worldA;
+      if (w.time - lastCov > 1 || !covHist.length) { lastCov = w.time; covHist.push(coverage()); if (covHist.length > 180) covHist.shift(); }
+      if (w.viz && w.viz.n !== lastViz) { lastViz = w.viz.n; nodeHist.push(w.viz.closed.length); if (nodeHist.length > 24) nodeHist.shift(); }
+      const cov = covHist[covHist.length - 1] || 0;
+      pCov.draw((c, wd, hh, C) => linePlot(c, wd, hh, C, { series: [{ ys: covHist }], yMax: 100, yLabel: '%', xLabel: 'time (1 s steps)', label: `${cov.toFixed(0)}%` }));
+      pNodes.draw((c, wd, hh, C) => barPlot(c, wd, hh, C, { values: nodeHist, yMax: Math.max(100, ...nodeHist), yLabel: 'nodes', xLabel: 'plan', highlight: nodeHist.length - 1, label: nodeHist.length ? String(nodeHist[nodeHist.length - 1]) : '' }));
+      shell.set('cov', cov.toFixed(0)); shell.set('cell', w.grid.res);
+      shell.set('nodes', nodeHist.length ? nodeHist[nodeHist.length - 1] : '–');
+      let L = 0; const p = w.path || []; for (let i = 1; i < p.length; i++) L += Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); shell.set('plen', p.length ? L.toFixed(1) : '–');
+      return;
+    }
+    const w = worldB, pf = w.pf;
+    pSpread.draw((c, wd, hh, C) => linePlot(c, wd, hh, C, { series: [{ ys: w.spreadHist }], yMax: Math.max(0.5, ...w.spreadHist), yLabel: 'm', xLabel: 'filter update', yFmt: v => v.toFixed(1), label: w.placed ? `${w.spread().toFixed(2)} m` : '' }));
+    pEss.draw((c, wd, hh, C) => linePlot(c, wd, hh, C, { series: [{ ys: w.essHist.map(v => 100 * v) }], yMax: 100, yLabel: '%', xLabel: 'filter update', label: w.essHist.length ? `${(100 * w.essHist[w.essHist.length - 1]).toFixed(0)}%` : '' }));
+    pW.draw((c, wd, hh, C) => {
+      const NB = 20, hist = new Array(NB).fill(0), n = pf.n; let mx = 0;
+      for (let i = 0; i < n; i++) mx = Math.max(mx, pf.w[i]);
+      for (let i = 0; i < n; i++) hist[Math.min(NB - 1, Math.floor(pf.w[i] / (mx || 1) * NB))]++;
+      barPlot(c, wd, hh, C, { values: hist, yMax: Math.max(...hist), yLabel: 'particles', xLabel: 'weight, 0 to max', yFmt: v => String(Math.round(v)) });
+    });
+    pScan.draw((c, wd, hh, C) => {
+      const cx = wd / 2, cy = hh / 2, R = Math.min(wd, hh) / 2 - 14, k = R / SPEC.lidar.rangeMax;
+      c.strokeStyle = C.rule; c.beginPath(); c.arc(cx, cy, R, 0, 7); c.stroke();
+      c.fillStyle = C.ink2; c.fillText(`${SPEC.lidar.rangeMax} m`, cx + R * 0.72, cy - R * 0.72 - 4);
+      if (!w.placed || !w.scans) { c.fillText('No scan yet', cx - 34, cy + 4); return; }
+      const e = w.estPose(), S = w.ranges.length, ox = SPEC.scanOffset.x, sx = e.x + Math.cos(e.th) * ox, sy = e.y + Math.sin(e.th) * ox;
+      // expected scan: rays cast in the known map from the estimated pose, every 4th beam
+      c.strokeStyle = C.mark; c.lineWidth = 1.5; c.beginPath();
+      for (let q = 0; q <= S; q += 4) { const b = q % S, a = (b / S) * 2 * Math.PI; let r = castRay(w.maze.segs, sx, sy, e.th + a); if (!(r <= SPEC.lidar.rangeMax)) r = SPEC.lidar.rangeMax;
+        const X = cx + Math.cos(a) * r * k, Y = cy - Math.sin(a) * r * k; q ? c.lineTo(X, Y) : c.moveTo(X, Y); }
+      c.stroke();
+      c.fillStyle = '#e01b1b';
+      for (let b = 0; b < S; b += 2) { const r = w.ranges[b]; if (!(r < Infinity)) continue; const a = (b / S) * 2 * Math.PI; c.fillRect(cx + Math.cos(a) * r * k - 1, cy - Math.sin(a) * r * k - 1, 2, 2); }
+      c.fillStyle = C.ink; c.textAlign = 'right'; c.fillText('robot frame, forward is right', wd - 2, hh - 2); c.textAlign = 'left';
+    });
+    shell.set('np', pf.n); shell.set('spread', w.placed ? w.spread().toFixed(2) : '–');
+    shell.set('ess', w.essHist.length ? (100 * w.essHist[w.essHist.length - 1]).toFixed(0) : '–'); shell.set('upd', w.pfUpdates);
+    shell.set('plen', w.pathLen ? w.pathLen.toFixed(1) : '–'); shell.set('nodes', w.astarNodes || '–');
+  }
+  shell.coach('A', [
+    { key: 'start', text: 'Runs in your browser. Press Start mapping.', target: () => B.play },
+    { key: 'goal', text: 'Click the floor to send the robot a goal.', target: () => stage, at: [0.5, 0.5] },
+  ]);
+  shell.coach('B', [
+    { key: 'drop', text: 'Runs in your browser. Click the map to place the robot; drag to set its heading.', target: () => stage, at: [0.5, 0.5] },
+    { key: 'goal', text: 'Click the map to set the goal.', target: () => stage, at: [0.5, 0.5] },
+    { key: 'start', text: 'Press Start.', target: () => B.start },
+  ]);
+  function showPanels() {
+    const a = scene_ === 'A';
+    [pCov, pNodes].forEach(p => p.sec.hidden = !a); [pScan, pSpread, pW, pEss].forEach(p => p.sec.hidden = a);
+    shell.focusGroup(a ? ['map', 'path', 'lidar'] : ['filter', 'path', 'lidar']);
+  }
 
   // ---- loop, visibility, adaptive quality ----------------------------------------------------
   let visible = true, needsRender = true, raf = 0, last = performance.now(), acc = 0, lastStatus = 0;
@@ -435,7 +569,12 @@ export function start(stage) {
       needsRender = true;
     }
     if (needsRender) { needsRender = false; updateDynamic(now); renderer.render(scene, camera); }
-    if (now - lastStatus > 250) { statusEl.textContent = playing ? W().status : `Paused · ${W().status}`; lastStatus = now; }
+    if (now - lastStatus > 250) {
+      const w = W(), started = scene_ === 'A' ? w.time > 0 : w.state !== 'ready' && w.state !== 'idle';
+      shell.say(!playing && started ? `Paused, ${w.status}` : scene_ === 'A' && !started ? 'Ready to map' : w.status);
+      lastStatus = now; if (scene_ === 'B') stepB();
+    }
+    viz(now);
     if (playing) adapt(interval);
     if (bench) {
       if (!window.__bt0) window.__bt0 = performance.now(); bench.push(performance.now() - t0);
@@ -450,13 +589,17 @@ export function start(stage) {
   }
 
   // ---- go ------------------------------------------------------------------------------------
-  const pre = qs.has('t') ? +qs.get('t') : reduced ? 0.25 : 0;
+  const pre = qs.has('t') ? +qs.get('t') : 0;
   worldA._resetSeen = worldA.seed;
   if (scene_ === 'A') for (let t = 0; t < pre; t += 1 / 60) worldA.step(1 / 60);
   showScene(scene_);
   if (scene_ === 'B') for (let t = 0; t < pre; t += 1 / 60) worldB.step(1 / 60);
   applyTheme(); resetCamera();
-  if (qs.has('rays')) $('rays').click();
-  setPlaying(playing && !qs.has('still'));
+  if (qs.has('rays')) toggle('rays', rays.o);
+  if (qs.has('play') && scene_ === 'A') setPlaying(true);
+  window.__tb3 = { get A() { return worldA; }, get B() { return worldB; }, get scene() { return scene_; }, get playing() { return playing; },
+    screen(x, y) { const v = new THREE.Vector3(x, 0, -y).project(camera), r = renderer.domElement.getBoundingClientRect(); return [r.left + (v.x + 1) / 2 * r.width, r.top + (1 - v.y) / 2 * r.height]; },
+    info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles }) };
   needsRender = true; kick();
+  return { showScene };
 }

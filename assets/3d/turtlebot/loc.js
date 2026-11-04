@@ -8,7 +8,7 @@ import { SPEC, makeMaze, OccGrid, castRay, Robot, costmap, astar, purePursuit, c
 export const AMCL_PARAMS = {
   alpha1: 0.2, alpha2: 0.2, alpha3: 0.2, alpha4: 0.2,
   zHit: 0.8, zRand: 0.2, sigmaHit: 0.1, temper: 0.15, cellArea: 0.05, maxBeams: 30, likelihoodMaxDist: 2.0,
-  minParticles: 500, maxParticles: 4000, pfErr: 0.05, pfZ: 2.326, // 99% normal quantile (amcl passes 0.99 raw)
+  minParticles: 500, maxParticles: 3000, pfErr: 0.05, pfZ: 2.326, // 99% normal quantile (amcl passes 0.99 raw)
   alphaSlow: 0.01, alphaFast: 0.3, // nav2 default is 0 (off); the amcl docs suggest these values
   updateMinD: 0.25, updateMinA: 0.2, // nav2_amcl defaults
   binXY: 0.5, binTh: (10 * Math.PI) / 180, clusterXY: 0.25,
@@ -61,7 +61,8 @@ export class ParticleFilter {
     const N = this.p.maxParticles;
     this.x = new Float32Array(N); this.y = new Float32Array(N); this.th = new Float32Array(N); this.w = new Float64Array(N);
     this.nx = new Float32Array(N); this.ny = new Float32Array(N); this.nth = new Float32Array(N);
-    this.wSlow = 0; this.wFast = 0;
+    this.wSlow = 0; this.wFast = 0; this.version = 0;
+    this.buildLL();
     this.globalInit();
   }
   randomPose(i, xs = this.x, ys = this.y, ths = this.th) {
@@ -74,7 +75,7 @@ export class ParticleFilter {
   globalInit() {
     this.n = this.p.maxParticles;
     for (let i = 0; i < this.n; i++) { this.randomPose(i); this.w[i] = 1 / this.n; }
-    this.wSlow = this.wFast = 0;
+    this.wSlow = this.wFast = 0; this.version++;
     this.estimate();
   }
   // Sample the odometry motion model (Thrun et al., Probabilistic Robotics, table 5.6).
@@ -86,6 +87,7 @@ export class ParticleFilter {
     if (Math.abs(dr1) > Math.PI / 2) { dr1 = wrap(dr1 + Math.PI); back = true; } // driving backwards (as amcl)
     const dr2 = wrap(o1[2] - o0[2] - dr1);
     const sr1 = Math.sqrt(a1 * dr1 * dr1 + a2 * dtr * dtr), st = Math.sqrt(a3 * dtr * dtr + a4 * (dr1 * dr1 + dr2 * dr2)), sr2 = Math.sqrt(a1 * dr2 * dr2 + a2 * dtr * dtr);
+    this.version++;
     for (let i = 0; i < this.n; i++) {
       const h1 = dr1 - sr1 * gaussR(r), t = (back ? -1 : 1) * (dtr - st * gaussR(r)), h2 = dr2 - sr2 * gaussR(r);
       this.x[i] += t * Math.cos(this.th[i] + h1); this.y[i] += t * Math.sin(this.th[i] + h1);
@@ -95,16 +97,17 @@ export class ParticleFilter {
   // Likelihood-field model (Probabilistic Robotics, table 6.3): product over beams
   // of z_hit * N(d; 0, sigma_hit) + z_rand / z_max, evaluated in log space. amcl uses a
   // softer 1 + sum(pz^3) score instead; in a dense maze that score barely separates poses.
+  // Per-cell log-likelihood table (Float32Array), built once per map when the filter is created.
+  buildLL() {
+    const P = this.p, g = this.map, zr = P.zRand / SPEC.lidar.rangeMax, den = 2 * P.sigmaHit * P.sigmaHit;
+    const norm = 1 / (Math.sqrt(2 * Math.PI) * P.sigmaHit) * P.cellArea;
+    this.LL = new Float32Array(this.field.length);
+    for (let k = 0; k < this.field.length; k++) { const d = this.field[k]; this.LL[k] = Math.log(P.zHit * norm * Math.exp(-(d * d) / den) + zr * P.cellArea / g.res); }
+    this.LLout = Math.log(P.zHit * norm * Math.exp(-(P.likelihoodMaxDist ** 2) / den) + zr * P.cellArea / g.res);
+  }
   measure(ranges) {
     const P = this.p, g = this.map, S = ranges.length, step = Math.max(1, Math.floor(S / P.maxBeams));
-    const zr = P.zRand / SPEC.lidar.rangeMax, den = 2 * P.sigmaHit * P.sigmaHit, ox = SPEC.scanOffset.x;
-    // per-cell log-likelihood table, built once per map
-    if (!this.LL) {
-      const norm = 1 / (Math.sqrt(2 * Math.PI) * P.sigmaHit) * P.cellArea;
-      this.LL = new Float32Array(this.field.length);
-      for (let k = 0; k < this.field.length; k++) { const d = this.field[k]; this.LL[k] = Math.log(P.zHit * norm * Math.exp(-(d * d) / den) + zr * P.cellArea / g.res); }
-      this.LLout = Math.log(P.zHit * norm * Math.exp(-(P.likelihoodMaxDist ** 2) / den) + zr * P.cellArea / g.res);
-    }
+    const ox = SPEC.scanOffset.x; this.version++;
     // beam end points in the laser frame, computed once per scan
     const bx = [], by = [];
     for (let b = 0; b < S; b += step) { const r = ranges[b]; if (!(r < SPEC.lidar.rangeMax)) continue; const a = (b / S) * 2 * Math.PI; bx.push(r * Math.cos(a)); by.push(r * Math.sin(a)); }
@@ -137,7 +140,8 @@ export class ParticleFilter {
     const b = 2 / (9 * (k - 1)), c = Math.sqrt(b) * this.p.pfZ, x = 1 - b + c;
     return Math.min(this.p.maxParticles, Math.max(this.p.minParticles, Math.ceil(((k - 1) / (2 * this.p.pfErr)) * x * x * x)));
   }
-  binKey(x, y, th) { const P = this.p; return `${Math.floor(x / P.binXY)},${Math.floor(y / P.binXY)},${Math.floor(th / P.binTh)}`; }
+  // Integer bin keys (no per-particle strings): x, y and heading bins packed into one number.
+  binKey(x, y, th) { const P = this.p; return ((Math.floor(x / P.binXY) + 512) * 1024 + (Math.floor(y / P.binXY) + 512)) * 64 + (Math.floor(th / P.binTh) + 32); }
   // Low-variance resampling of maxParticles candidates, visited in random order;
   // stop when the KLD bound for the bins filled so far is met. Each new sample is
   // replaced by a uniform random pose with probability max(0, 1 - w_fast / w_slow).
@@ -157,25 +161,25 @@ export class ParticleFilter {
       if (n >= this.kldBound(bins.size)) break;
     }
     [this.x, this.nx] = [this.nx, this.x]; [this.y, this.ny] = [this.ny, this.y]; [this.th, this.nth] = [this.nth, this.th];
-    this.n = n; for (let k = 0; k < n; k++) this.w[k] = 1 / n;
+    this.n = n; for (let k = 0; k < n; k++) this.w[k] = 1 / n; this.version++;
     if (inject > 0) this.wSlow = this.wFast = 0; // amcl resets the averages after injecting
   }
   // amcl reports the mean/covariance of the heaviest particle cluster.
   estimate() {
-    const P = this.p, bins = new Map();
+    const P = this.p, bins = new Map(), K = 4096, key = (bx, by) => (bx + 2048) * K + (by + 2048);
     for (let i = 0; i < this.n; i++) {
-      const key = `${Math.floor(this.x[i] / P.clusterXY)},${Math.floor(this.y[i] / P.clusterXY)}`;
-      let b = bins.get(key); if (!b) bins.set(key, (b = { w: 0, list: [] }));
+      const k = key(Math.floor(this.x[i] / P.clusterXY), Math.floor(this.y[i] / P.clusterXY));
+      let b = bins.get(k); if (!b) bins.set(k, (b = { w: 0, list: [] }));
       b.w += this.w[i]; b.list.push(i);
     }
     const seen = new Set(); let best = null;
-    for (const key of bins.keys()) {
-      if (seen.has(key)) continue;
-      const cl = { w: 0, list: [] }, q = [key]; seen.add(key);
+    for (const k0 of bins.keys()) {
+      if (seen.has(k0)) continue;
+      const cl = { w: 0, list: [] }, q = [k0]; seen.add(k0);
       while (q.length) {
-        const kk = q.pop(), b = bins.get(kk); cl.w += b.w; cl.list.push(...b.list);
-        const [bx, by] = kk.split(',').map(Number);
-        for (let a = -1; a <= 1; a++) for (let c = -1; c <= 1; c++) { const nk = `${bx + a},${by + c}`; if (bins.has(nk) && !seen.has(nk)) { seen.add(nk); q.push(nk); } }
+        const kk = q.pop(), b = bins.get(kk); cl.w += b.w; for (const i of b.list) cl.list.push(i);
+        const bx = Math.floor(kk / K) - 2048, by = (kk % K) - 2048;
+        for (let a = -1; a <= 1; a++) for (let c = -1; c <= 1; c++) { const nk = key(bx + a, by + c); if (bins.has(nk) && !seen.has(nk)) { seen.add(nk); q.push(nk); } }
       }
       if (!best || cl.w > best.w) best = cl;
     }
@@ -207,8 +211,13 @@ export class LocWorld {
     this.time = 0; this.scanT = 0; this.scans = 0; this.pfUpdates = 0;
     this.goal = null; this.path = null; this.pathVersion = 0; this.replanT = 0;
     this.robot = new Robot(0, 0, 0);
-    this.kidnap(); this.goal = this.randomFree(1.5);
+    this.placed = false; this.state = 'idle'; this.status = 'No robot placed'; this.odom = [0, 0, 0]; this.odomLast = null;
+    this.spreadHist = []; this.essHist = [];
   }
+  // The visitor drops the robot: the true pose is set, the filter starts from a uniform spread.
+  place(x, y, th) { this.kidnap(x, y, th); this.placed = true; this.state = 'ready'; this.spreadHist = []; this.essHist = []; this.status = 'Robot placed'; }
+  spread() { const e = this.pf.est; return Math.sqrt((e.cxx + e.cyy) / 2 + Math.sqrt(((e.cxx - e.cyy) / 2) ** 2 + e.cxy ** 2)); }
+  ess() { let s2 = 0; for (let i = 0; i < this.pf.n; i++) s2 += this.pf.w[i] * this.pf.w[i]; return 1 / s2; }
   freeOk(x, y) { return !circleHitsWalls(this.maze.walls, x, y, SPEC.footprint.r + 0.02) && x > 0 && y > 0 && x < this.maze.sizeX && y < this.maze.sizeY; }
   randomFree(minFrom = 0) {
     for (let k = 0; k < 500; k++) {
@@ -223,9 +232,9 @@ export class LocWorld {
     Object.assign(this.robot, { x, y, th, wl: 0, wr: 0 });
     this.odom = [0, 0, 0]; this.odomLast = null; // odometry frame restarts
     this.pf.globalInit(); this.updAtKidnap = this.pfUpdates || 0; this.travel = 0;
-    this.state = 'localizing'; this.spun = 0; this.wanderHead = null; this.path = null; this.idleT = 0; this.lastProg = { t: this.time, x, y };
-    this.status = 'Localizing: particles spread over free space';
+    this.state = this.placed ? 'localizing' : this.state; this.spun = 0; this.wanderHead = null; this.path = null; this.idleT = 0; this.lastProg = { t: this.time, x, y };
   }
+  start() { if (this.placed && this.goal && this.state === 'ready') { this.state = 'localizing'; this.status = `Particle filter: ${this.pf.n} particles`; } }
   setGoal(x, y) { this.goal = [x, y]; this.path = null; this.replanT = 0; if (this.state === 'arrived') this.state = 'navigating'; }
   scanPose() { const r = this.robot, o = SPEC.scanOffset.x; return [r.x + Math.cos(r.th) * o, r.y + Math.sin(r.th) * o, r.th]; }
   sense() {
@@ -248,6 +257,8 @@ export class LocWorld {
     if (1 / s2 < this.pf.n / 2 || this.pf.wFast < this.pf.wSlow * 0.5) this.pf.resample();
     this.pf.estimate();
     this.odomLast = [...o1]; this.pfUpdates++;
+    this.spreadHist.push(this.spread()); this.essHist.push(this.ess() / this.pf.n);
+    if (this.spreadHist.length > 120) { this.spreadHist.shift(); this.essHist.shift(); }
   }
   collides = (x, y) => circleHitsWalls(this.maze.walls, x, y, SPEC.footprint.r - 0.01);
   drive(v, w, dt) {
@@ -266,6 +277,7 @@ export class LocWorld {
     return { x: e.x + c * dx - s * dy, y: e.y + s * dx + c * dy, th: wrap(e.th + o[2] - o0[2]) };
   }
   step(dt) {
+    if (!this.placed || this.state === 'ready' || this.state === 'idle') return;
     this.time += dt; this.scanT += dt;
     if (this.scanT >= 1 / SPEC.lidar.hz) { this.scanT -= 1 / SPEC.lidar.hz; this.sense(); this.filter(); this.evaluate(); }
     if (!this.scans) return;
@@ -302,22 +314,23 @@ export class LocWorld {
       if (Math.hypot(this.robot.x - this.lastProg.x, this.robot.y - this.lastProg.y) > 0.05) this.lastProg = { t: this.time, x: this.robot.x, y: this.robot.y };
       else if (this.time - this.lastProg.t > 5) { this.lastProg.t = this.time; this.path = null; this.drive(-0.1, 0, 0.3); }
     } else if (this.state === 'arrived') {
-      this.drive(0, 0, dt); this.idleT += dt;
-      if (this.auto !== false && this.idleT > 6) { this.kidnap(); this.goal = this.randomFree(1.5); this.status = 'Kidnapped: re-localizing'; }
+      this.drive(0, 0, dt); this.idleT += dt;   // stops and waits for the visitor
     }
   }
   plan(est) {
     const g = this.grid, [si, sj] = g.toCell(est.x, est.y), [ti, tj] = g.toCell(this.goal[0], this.goal[1]);
     if (!g.inside(si, sj) || !g.inside(ti, tj)) { this.path = null; return; }
-    const p = astar(g, this.cm, sj * g.w + si, tj * g.w + ti);
+    const tr = { closed: [] }, p = astar(g, this.cm, sj * g.w + si, tj * g.w + ti, Infinity, tr);
     if (!p) { this.path = null; this.status = 'No path from estimated pose'; return; }
     this.path = p.map(k => [g.originX + ((k % g.w) + 0.5) * g.res, g.originY + (((k / g.w) | 0) + 0.5) * g.res]);
-    this.path[0] = [est.x, est.y]; this.pathVersion++;
+    this.path[0] = [est.x, est.y]; this.pathVersion++; this.astarNodes = tr.closed.length;
+    let L = 0; for (let i = 1; i < this.path.length; i++) L += Math.hypot(this.path[i][0] - this.path[i - 1][0], this.path[i][1] - this.path[i - 1][1]);
+    this.pathLen = L; this.status = `A* path: ${L.toFixed(1)} m`;
   }
   evaluate() {
     const conv = this.pf.converged();
-    if (this.state === 'localizing' && conv && this.spun >= 2 * Math.PI && this.pfUpdates - (this.updAtKidnap || 0) >= 40 && this.travel > 1.0) { this.state = 'navigating'; this.path = null; this.replanT = 0; this.status = 'Localized: driving to goal (A* from estimated pose)'; }
-    else if (this.state === 'navigating' && !conv && this.pf.injectProb > 0.2) { this.state = 'localizing'; this.spun = 0; this.wanderHead = null; this.path = null; this.status = 'Likelihood dropped: injecting random particles'; }
-    else if (this.state === 'localizing') this.status = `Localizing: ${this.pf.n} particles`;
+    if (this.state === 'localizing' && conv && this.spun >= 2 * Math.PI && this.pfUpdates - (this.updAtKidnap || 0) >= 40 && this.travel > 1.0) { this.state = 'navigating'; this.path = null; this.replanT = 0; this.status = `Converged: spread ${this.spread().toFixed(2)} m`; }
+    else if (this.state === 'navigating' && !conv && this.pf.injectProb > 0.2) { this.state = 'localizing'; this.spun = 0; this.wanderHead = null; this.path = null; this.status = `Likelihood dropped, injecting ${Math.round(this.pf.injectProb * 100)}% random particles`; }
+    else if (this.state === 'localizing') this.status = `Particle filter: ${this.pf.n} particles, spread ${this.spread().toFixed(2)} m`;
   }
 }
