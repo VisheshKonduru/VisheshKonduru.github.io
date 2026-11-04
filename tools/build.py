@@ -1,3 +1,4 @@
+import re
 """Builds the static pages from the content below.
 
 Run:  python tools/build.py
@@ -157,12 +158,9 @@ def project_page(p, prev, nxt):
     <p class="crumb"><a href="../index.html">Work</a> / {p["title"]}</p>
     <h1>{p["title"]}</h1>
     {honors_block(p)}
-    <dl class="spec">
-      <div><dt>Context</dt><dd>{p["meta"]}</dd></div>
-      {f'<div><dt>Dates</dt><dd>{_year(p)}</dd></div>' if _year(p) else ""}
-      {f'<div><dt>Tools</dt><dd>{", ".join(p["tags"])}</dd></div>' if p.get("tags") else ""}
-      {f'<div><dt>Links</dt><dd>{links}</dd></div>' if links else ""}
-    </dl>
+    <p class="head-meta">{p["meta"]}{f' <span class="head-year">{_year(p)}</span>' if _year(p) and not re.search(r"(19|20)\d\d", p["meta"]) else ""}</p>
+    {f'<p class="head-skills"><span>Skills</span> {", ".join(p["tags"])}</p>' if p.get("tags") else ""}
+    {links}
   </header>
   {p.get("demo", "")}
   <div class="chapter-body">

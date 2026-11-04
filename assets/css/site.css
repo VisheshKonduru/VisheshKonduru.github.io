@@ -413,3 +413,15 @@ dialog.lb img { max-width: calc(100vw - 48px); max-height: calc(100vh - 96px); w
 }
 
 .wip { position: fixed; right: 16px; bottom: 16px; z-index: 50; margin: 0; padding: 8px 14px; background: #c62828; color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .02em; border-radius: 4px; }
+
+/* project header: plain lines, bordered link buttons */
+.head-meta { font-size: 18px; color: var(--ink); margin: 0 0 8px; max-width: 760px; }
+.head-year { color: var(--ink-2); margin-left: 8px; }
+.head-skills { font-size: 17px; color: var(--ink); margin: 0 0 20px; max-width: 760px; }
+.head-skills span { font-weight: 600; margin-right: 6px; }
+.chapter-head .top-links { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 32px; }
+.chapter-head .top-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border: 1px solid var(--rule); border-radius: 4px; color: var(--ink); text-decoration: none; font-size: 16px; white-space: nowrap; }
+.chapter-head .top-links a::after { content: ""; }
+.chapter-head .top-links a:hover { border-color: var(--ink); }
+.chapter-head .top-links a:focus-visible { outline: 2px solid var(--mark); outline-offset: 2px; }
+.toc p { font-variant-caps: normal; text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
