@@ -34,3 +34,8 @@ export function bestMove(board, turn = 'O') {
   }
   return best;
 }
+// Minimax score of each free cell if `turn` plays there (null for taken cells).
+export function moveScores(board, turn = 'O') {
+  const b = [...board];
+  return b.map((c, i) => { if (c || winner(b)) return null; b[i] = turn; const s = search(b, turn === 'O' ? 'X' : 'O', 1, -Infinity, Infinity); b[i] = null; return s; });
+}

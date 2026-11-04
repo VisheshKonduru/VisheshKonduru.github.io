@@ -17,8 +17,8 @@
 .ds-tabs [role="tab"][aria-selected="true"] { color: var(--ds-ink); }
 .ds-tabs [role="tab"]:hover { color: var(--ds-ink); }
 .ds-ind { position: absolute; left: 0; bottom: 4px; height: 2px; width: 0; background: var(--ds-ink); transition: transform var(--ds-t) var(--ds-ease), width var(--ds-t) var(--ds-ease); pointer-events: none; }
-.ds-side .ds-tabs { gap: 0 18px; }
-.ds-side .ds-tabs [role="tab"] { font-size: 16px; }
+.ds-side .ds-tabs { gap: 0 14px; }
+.ds-side .ds-tabs [role="tab"] { font-size: 15px; }
 
 /* Flow row: what to do, left to right. Primary is bordered; secondary actions are plain text. */
 .ds-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 10px 0 14px; font-size: 17px; }

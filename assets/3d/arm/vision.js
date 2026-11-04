@@ -326,3 +326,14 @@ export function calibrateFromImage(img, K, predict) {
   const rms = Math.sqrt(B.reduce((s, b, k) => { const p = applyH(H, b[0], b[1]); return s + (p[0] - I[k][0]) ** 2 + (p[1] - I[k][1]) ** 2; }, 0) / B.length);
   return { cal: makeCalibration(H, K), used: B.length, total: board.length, rms };
 }
+
+// RMS distance between the corners found near a calibration's predictions and those predictions:
+// small for a valid calibration, grows when the camera has moved since.
+export function reprojError(img, K, H) {
+  const gray = toGray(img, K.W, K.H), board = innerCorners();
+  const pred = board.map(b => applyH(H, b[0], b[1]));
+  const found = findCorners(gray, K.W, K.H, pred, 10);
+  let s = 0, n = 0;
+  found.forEach((f, k) => { if (f) { s += (f[0] - pred[k][0]) ** 2 + (f[1] - pred[k][1]) ** 2; n++; } });
+  return n ? Math.sqrt(s / n) : null;
+}
