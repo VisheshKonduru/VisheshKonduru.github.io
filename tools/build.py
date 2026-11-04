@@ -210,13 +210,14 @@ def index_page():
       <div><span>Software Engineer</span><span>Cavall Labs</span></div>
     </div>
     <div class="hero-links"><a href="mailto:{EMAIL}">Email</a><a href="{LINKEDIN}">LinkedIn</a><a href="{GITHUB}">GitHub</a><a href="{RESUME}">Resume</a></div>
+    <a class="hero-live" href="#projects">See my projects run live in your browser</a>
     </div>
   </div>
 </section>
 
-<section>
+<section id="projects">
   <div class="wrap">
-    <div class="section-head"><h2>Projects</h2><p class="section-note">Several of these run live in your browser.</p></div>
+    <div class="section-head"><h2>Projects</h2></div>
     <div class="index">{"".join(items)}</div>
   </div>
 </section>

@@ -89,9 +89,13 @@ body:has(.hero) .site-head.solid .site-nav a[aria-current="page"] { color: var(-
 .hero-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px 24px; margin-top: 24px; font-size: 16px; }
 .hero-links a { color: #fff; text-underline-offset: 5px; text-decoration-color: rgba(255,255,255,.5); }
 /* reveal synced to the reel (JS adds .go) */
-.hero-name, .hero-block, .hero-links { opacity: 0; transform: translateY(8px); transition: opacity .3s cubic-bezier(.25,.1,.25,1), transform .3s cubic-bezier(.25,.1,.25,1); }
+.hero-live { display: inline-flex; align-items: center; min-height: 44px; margin-top: 20px; padding: 0 20px; border: 1.5px solid #fff; border-radius: 6px; color: #fff; font-size: 17px; font-weight: 500; text-decoration: none; }
+.hero-live:hover { background: #fff; color: #111; }
+.hero-live:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.hero-name, .hero-block, .hero-links, .hero-live { opacity: 0; transform: translateY(8px); transition: opacity .3s cubic-bezier(.25,.1,.25,1), transform .3s cubic-bezier(.25,.1,.25,1); }
 .hero.go .hero-name { opacity: 1; transform: none; }
 .hero.go .hero-block { opacity: 1; transform: none; transition-delay: .12s; }
+.hero.go .hero-live { opacity: 1; transform: none; transition-delay: .32s; }
 .hero.go .hero-links { opacity: 1; transform: none; transition-delay: .24s; }
 .hero + section { border-top: 0; }
 
@@ -209,7 +213,7 @@ figcaption { font-size: 15px; line-height: 1.5; color: var(--ink-2); padding-top
   .hero video { display: none; }
   .hero { background: #0d0e10 url(../video/hero_poster.jpg) center / cover; }
   .hero-shade { animation: none; }
-  .hero-name, .hero-block, .hero-links { opacity: 1; transform: none; transition: none; }
+  .hero-name, .hero-block, .hero-links, .hero-live { opacity: 1; transform: none; transition: none; }
   .rv { opacity: 1; transform: none; transition: none; }
 }
 
