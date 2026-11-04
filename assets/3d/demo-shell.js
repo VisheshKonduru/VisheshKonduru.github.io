@@ -66,9 +66,7 @@ export function createShell(root, opts) {
   const live = h('p', { style: 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);margin:0', 'aria-live': 'assertive' });
   root.append(...[tabs && tabs.row, flow, stage, below, live].filter(Boolean));
   // Desktop: the column is exactly as tall as the view, so the readout stays in sight.
-  const wide = matchMedia('(min-width: 1100px)');
-  const fit = () => { col.style.height = wide.matches ? view.offsetHeight + 'px' : ''; };
-  new ResizeObserver(fit).observe(view); wide.addEventListener('change', fit);
+  // The column grows with its content; it never scrolls on its own.
   // Any old figure caption is dropped: the readout and status carry the information now.
   root.closest('figure')?.querySelector(':scope > figcaption')?.remove();
 
@@ -123,13 +121,14 @@ export function createShell(root, opts) {
   function setFlow(items, more = []) {
     flow.replaceChildren(); S.buttons = {}; S.steps = {};
     items.forEach((it, i) => {
-      if (i) flow.append(h('span', { class: 'ds-arr', 'aria-hidden': 'true', text: '→' }));
+
       let n;
       if (it.primary) n = S.buttons[it.id || it.primary] = h('button', { type: 'button', class: 'ds-primary', text: it.primary, onclick: it.onClick });
       else if (it.node) n = it.node;
       else n = h('span', { class: 'ds-step', text: it.step });
       if (it.id) S.steps[it.id] = n;
-      flow.append(n);
+      // The arrow stays on the same line as the step it points to.
+      flow.append(i ? h('span', { class: 'ds-pair' }, h('span', { class: 'ds-arr', 'aria-hidden': 'true', text: '→' }), n) : n);
     });
     const coachBtn = S.coach ? h('button', { type: 'button', text: 'Show steps again', onclick: () => startCoach(true) }) : null;
     const m = more.map(b => (S.buttons[b.id || b.label] = h('button', { type: 'button', text: b.label, onclick: b.onClick, 'aria-pressed': b.pressed == null ? null : String(b.pressed) })));
@@ -164,12 +163,12 @@ export function createShell(root, opts) {
   function showStep() {
     if (target) target.classList.remove('ds-coach-target');
     const st = C.steps[C.i]; target = st.target();
-    if (target) target.classList.add('ds-coach-target');
+    if (target && target !== view) target.classList.add('ds-coach-target');
     boxText.textContent = st.text; boxCount.textContent = `${C.i + 1} of ${C.steps.length}`;
     live.textContent = `Step ${C.i + 1} of ${C.steps.length}. ${st.text}`;
-    box.hidden = false; position();
+    box.hidden = false; position(); requestAnimationFrame(position);
     if (box.animate) box.animate(reduce() ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 250, easing: EASE });
-    if (target && C.focus !== false && (target.tabIndex >= 0 || /BUTTON|SELECT|INPUT/.test(target.tagName))) target.focus({ preventScroll: true });
+    if (target && /BUTTON|SELECT|INPUT/.test(target.tagName)) target.focus({ preventScroll: true });
   }
   function position() {
     if (!C || box.hidden) return;
@@ -180,6 +179,11 @@ export function createShell(root, opts) {
     const bw = Math.min(300, root.clientWidth - 16);
     box.style.width = bw + 'px';
     let left = ax - r0.left - 28; left = Math.max(0, Math.min(root.clientWidth - bw, left));
+    // A spot in the view: the callout sits inside the view's bottom-left corner, clear of the
+    // status line under the view and of the middle where the visitor clicks.
+    const inView = t === view;
+    arrow.hidden = inView;
+    if (inView) { left = r.left - r0.left + 12; box.style.left = left + 'px'; box.style.top = (r.bottom - r0.top - box.offsetHeight - 12) + 'px'; return; }
     box.style.left = left + 'px'; box.style.top = (ay - r0.top + 12) + 'px';
     arrow.style.left = Math.max(10, Math.min(bw - 22, ax - r0.left - left - 6)) + 'px';
   }

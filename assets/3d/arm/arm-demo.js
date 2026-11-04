@@ -36,7 +36,7 @@ export function mount(root) {
     scenes: [{ id: 'sort', label: 'Sort balls' }, { id: 'ttt', label: 'Play tic-tac-toe' }], scene: 'sort',
     onScene: (id) => { api.mode = id; api.setMode ? api.setMode(id) : buildFlow(id); },
     side: true, sideLabel: 'Camera stage',
-    views: ['Raw', 'Undistorted', 'Board mask', 'Colours', 'Detections'].map((l, i) => ({ id: String(i), label: l })), view: '4',
+    views: ['Raw', 'Undistorted', 'Mask', 'Colours', 'Detections'].map((l, i) => ({ id: String(i), label: l })), view: '4',
     onView: (id) => { api.stage = +id; api.redraw && api.redraw(); },
   });
   ui.shell = shell; ui.view = shell.view;
@@ -49,12 +49,12 @@ export function mount(root) {
   function buildFlow(m) {
     if (m === 'sort') {
       const b = shell.setFlow([{ node: ui.place, id: 'place' }, { primary: 'Sort', id: 'sort', onClick: () => api.runSort && api.runSort() }],
-        [{ label: 'Scatter', id: 'scatter', onClick: () => api.scatter && api.scatter() }, { label: 'Reset', id: 'reset', onClick: () => api.reset && api.reset() }, ...camBtns()]);
-      ui.sort = b.sort; ui.scatter = b.scatter; ui.reset = b.reset; keep(b);
+        [{ label: 'Scatter', id: 'scatter', onClick: () => api.scatter && api.scatter() }, { label: 'Reset', id: 'reset', onClick: () => api.reset && api.reset() }]);
+      ui.sort = b.sort; ui.scatter = b.scatter; ui.reset = b.reset;
     } else {
       const b = shell.setFlow([{ step: 'Your move: click a square', id: 'human' }, { step: 'Arm’s move', id: 'arm' }],
-        [{ label: 'New game', id: 'reset', onClick: () => api.reset && api.reset() }, ...camBtns()]);
-      ui.sort = ui.scatter = null; ui.reset = b.reset; keep(b);
+        [{ label: 'New game', id: 'reset', onClick: () => api.reset && api.reset() }]);
+      ui.sort = ui.scatter = null; ui.reset = b.reset;
     }
     shell.focusGroup(m === 'sort' ? ['detect', 'cal'] : ['detect', 'arm']);
     if (ui.pTtt) ui.pTtt.sec.hidden = m !== 'ttt';
@@ -64,13 +64,16 @@ export function mount(root) {
     { label: 'Nudge camera', id: 'nudge', onClick: () => api.nudge && api.nudge() },
     { label: 'Recalibrate', id: 'recal', onClick: () => api.recal && api.recal() },
     { label: 'Show frames', id: 'frames', pressed: !!api.frames, onClick: () => api.toggleFrames && api.toggleFrames() }];
-  const keep = (b) => { ui.light = b.light; ui.nudge = b.nudge; ui.recal = b.recal; ui.framesBtn = b.frames; };
+  // Camera tools live in the camera column, above the inset.
+  const tools = el('div', { class: 'ds-tools', role: 'group', 'aria-label': 'Camera tools' });
+  for (const t of camBtns()) { const b = el('button', { type: 'button', text: t.label, onclick: t.onClick, 'aria-pressed': t.pressed == null ? null : String(t.pressed) }); tools.append(b); ui[{ light: 'light', nudge: 'nudge', recal: 'recal', frames: 'framesBtn' }[t.id]] = b; }
+  shell.side.insertBefore(tools, shell.sideBody);
   ui.buildFlow = buildFlow;
   // Camera inset at the top of the column
   ui.canvas = el('canvas', { width: K.W, height: K.H, role: 'img', 'aria-label': 'Camera image at the selected pipeline stage' });
   shell.sideBody.append(ui.canvas);
   // Live visuals
-  ui.pBoard = shell.panel('Ball positions on the board, true and detected (mm)', 190);
+  ui.pBoard = shell.panel('Ball positions on the board: true (ring), detected (dot)', 200);
   ui.pErr = shell.panel('Reprojection error after each camera change (px)', 110);
   ui.pTtt = shell.panel('Minimax score of each free square for the arm', 150);
   ui.pTtt.sec.hidden = true;
@@ -96,7 +99,6 @@ export function mount(root) {
       { id: 'ik', label: 'IK target', unit: 'm', desc: 'Tool position the inverse kinematics last solved for.' }] },
   ]);
   shell.set('lens', 'Kannala-Brandt'); shell.set('f', R.f); shell.set('k', `${R.k[0]}, ${R.k[1]}`); shell.set('fov', Math.round(2 * R.thetaMax * 180 / Math.PI)); shell.set('fu', K.fx);
-  buildFlow('sort');
   shell.coach('sort', [
     { key: 'place', text: 'Runs in your browser. Click the board to place a ball.', target: () => ui.view, at: [0.45, 0.62] },
     { key: 'drag', text: 'Drag a ball to move it.', target: () => ui.view, at: [0.45, 0.62] },
@@ -105,6 +107,7 @@ export function mount(root) {
   shell.coach('ttt', [
     { key: 'move', text: 'Runs in your browser. Click a square to place a green ball.', target: () => ui.view, at: [0.45, 0.62] },
   ]);
+  buildFlow('sort');
   const io = new IntersectionObserver((es) => {
     if (es.some(e => e.isIntersecting)) { io.disconnect(); start(root, ui).catch(err => { ui.loading.textContent = 'Could not load the 3D view.'; console.error(err); }); }
   }, { rootMargin: '300px' });
@@ -419,7 +422,7 @@ async function start(root, ui) {
       const X = (b) => L + b[1] * 1000 * sc, Y = (b) => T + (V.BOARD.Lx - b[0]) * 1000 * sc;
       c.strokeStyle = C.ink2; c.lineWidth = 1; c.strokeRect(L, T, V.BOARD.Ly * 1000 * sc, V.BOARD.Lx * 1000 * sc);
       c.fillStyle = C.ink2; c.textAlign = 'left'; c.fillText('0', L - 12, T + V.BOARD.Lx * 1000 * sc + 14); c.textAlign = 'right';
-      c.fillText(`${Math.round(V.BOARD.Ly * 1000)}`, L + V.BOARD.Ly * 1000 * sc, T + V.BOARD.Lx * 1000 * sc + 14); c.fillText(`${Math.round(V.BOARD.Lx * 1000)}`, L - 4, T + 9); c.textAlign = 'left';
+      c.fillText(`${Math.round(V.BOARD.Ly * 1000)} mm`, L + V.BOARD.Ly * 1000 * sc, T + V.BOARD.Lx * 1000 * sc + 14); c.fillText(`${Math.round(V.BOARD.Lx * 1000)}`, L - 4, T + 9); c.fillText('mm', L - 4, T + 24); c.textAlign = 'left';
       for (const b of balls) { if (b.parent !== ros || !onBoard(b.position.x, b.position.y)) continue; const bb = V.baseToBoard([b.position.x, b.position.y]);
         c.strokeStyle = '#' + RGB[b.userData.colour].toString(16).padStart(6, '0'); c.lineWidth = 1.5; c.beginPath(); c.arc(X(bb), Y(bb), BALL_R * 1000 * sc, 0, 7); c.stroke(); }
       for (const d of ok) { c.fillStyle = C.ink; c.beginPath(); c.arc(X(d.boardC), Y(d.boardC), 2.5, 0, 7); c.fill(); }

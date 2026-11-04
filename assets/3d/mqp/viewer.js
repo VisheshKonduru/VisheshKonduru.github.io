@@ -26,9 +26,9 @@ function mount(root) {
     shell.setFlow([{ step: id === 'view' ? 'Drag to turn, scroll to zoom' : 'Point at a part group to highlight it', id: 'how' }],
       [{ label: 'Reset view', id: 'reset', onClick: () => api && api.reset() }]);
   }
-  buildFlow(shell.scene);
   shell.coach('view', [{ key: 'turn', text: 'Runs in your browser. Drag the model to turn it.', target: () => view, at: [0.5, 0.5] }]);
   shell.coach('exploded', [{ key: 'hover', text: 'Point at a part group in the list.', target: () => legend }]);
+  buildFlow(shell.scene);
   shell.say('Loading model');
   let started = false;
   const go = () => { if (started) return; started = true; init(root, shell, legend).then(a => { api = a; api.setExplode(shell.scene === 'exploded'); shell.startCoach(); }).catch(e => { console.error(e); shell.say('Could not load the model'); }); };
