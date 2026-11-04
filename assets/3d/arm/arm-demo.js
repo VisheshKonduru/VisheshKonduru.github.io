@@ -3,6 +3,7 @@
 import { ik, fk, URDF } from './ik.js';
 import * as V from './vision.js';
 import { bestMove, winner } from './ttt.js';
+import { createShell, h } from '../demo-shell.js';
 
 const HERE = new URL('.', import.meta.url);
 const K = V.INTRINSICS, BALL_R = 0.012, BOARD_TOP = V.BOARD.origin[2];
@@ -23,78 +24,70 @@ const LIGHTS = [
   { name: 'Warm', sun: 1.5, env: 0.6, col: 0xffc690, gain: 1.0, wb: [1.18, 0.96, 0.7], noise: 3 },
 ];
 
-function el(tag, attrs = {}, ...kids) {
-  const e = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) k === 'class' ? (e.className = v) : k.startsWith('on') ? e.addEventListener(k.slice(2), v) : e.setAttribute(k, v);
-  for (const c of kids) e.append(c);
-  return e;
-}
+const el = h;
 
 export function mount(root) {
   if (root.dataset.mounted) return; root.dataset.mounted = '1';
-  if (!document.querySelector('link[data-arm3d-css]')) document.head.append(el('link', { rel: 'stylesheet', href: new URL('arm3d.css', HERE).href, 'data-arm3d-css': '' }));
-  root.classList.add('a3');
-  const btn = (text, on, extra = {}) => el('button', { type: 'button', onclick: on, ...extra }, text);
-  const ui = {};
-  // Control line
-  ui.modeSort = btn('Sort', () => setMode('sort'), { 'aria-pressed': 'true' });
-  ui.modeTtt = btn('Tic-tac-toe', () => setMode('ttt'), { 'aria-pressed': 'false' });
-  ui.colours = V.COLORS.map(c => btn(el('span', { class: 'a3-sw', style: `background:#${RGB[c].toString(16).padStart(6, '0')}` }), () => pickColour(c), { 'aria-pressed': String(c === 'red'), 'aria-label': `Place ${LABEL[c]} balls` }));
-  ui.colours.forEach((b, i) => b.append(LABEL[V.COLORS[i]]));
-  ui.sort = btn('Sort', () => runSort());
-  ui.scatter = btn('Scatter', () => scatter());
-  ui.reset = btn('Reset', () => reset());
-  ui.sortCtl = el('span', { class: 'a3-group', role: 'group', 'aria-label': 'Ball colour to place' }, ...ui.colours);
-  ui.tttNote = el('span', { class: 'a3-note' }, 'You are green. Click a cell (or press 1–9).');
-  ui.line = el('div', { class: 'a3-line' },
-    el('span', { class: 'a3-group', role: 'group', 'aria-label': 'Mode' }, ui.modeSort, ui.modeTtt), el('span', { class: 'a3-sep', 'aria-hidden': 'true' }),
-    ui.sortCtl, ui.tttNote, ui.sort, ui.scatter, ui.reset);
-  // Stage: 3D view + camera inset
-  ui.view = el('div', { class: 'a3-view', tabindex: '0', role: 'application', 'aria-label': '3D view of the arm, board and camera. Drag to rotate, drag a ball to move it, click the board to place a ball. In tic-tac-toe, keys 1 to 9 place your ball.' });
-  ui.loading = el('p', { class: 'a3-loading' }, 'Loading 3D model…');
+  const api = { colour: 'red', stage: 4, mode: 'sort' };
+  const ui = { api };
+  const shell = createShell(root, {
+    id: 'arm', label: 'Robot arm, checkerboard and camera',
+    viewLabel: '3D view of the arm, board and camera. Drag to rotate, drag a ball to move it, click the board to place a ball. In tic-tac-toe, keys 1 to 9 place your ball.',
+    scenes: [{ id: 'sort', label: 'Sort balls' }, { id: 'ttt', label: 'Play tic-tac-toe' }], scene: 'sort',
+    onScene: (id) => { api.mode = id; api.setMode ? api.setMode(id) : buildFlow(id); },
+    side: true, sideLabel: 'Camera stage',
+    views: ['Raw', 'Undistorted', 'Board mask', 'Colours', 'Detections'].map((l, i) => ({ id: String(i), label: l })), view: '4',
+    onView: (id) => { api.stage = +id; api.redraw && api.redraw(); },
+  });
+  ui.shell = shell; ui.view = shell.view;
+  ui.loading = el('p', { class: 'ds-loading', text: 'Loading 3D model' });
   ui.view.append(ui.loading);
-  const STAGES = ['Raw', 'Undistorted', 'Board mask', 'Colours', 'Detections'];
-  ui.stageBtns = STAGES.map((s, i) => btn(s, () => setStage(i), { 'aria-pressed': String(i === 4) }));
-  ui.canvas = el('canvas', { width: K.W, height: K.H, role: 'img', 'aria-label': 'Live camera image with detections' });
-  ui.light = btn('Lighting: Normal', () => cycleLight());
-  ui.nudge = btn('Nudge camera', () => nudgeCamera());
-  ui.recal = btn('Recalibrate', () => recalibrate());
-  ui.balls = el('ol', { class: 'a3-balls', 'aria-live': 'off' });
-  ui.cam = el('div', { class: 'a3-cam' },
-    el('div', { class: 'a3-line a3-small', role: 'group', 'aria-label': 'Pipeline stage' }, ...ui.stageBtns),
-    ui.canvas,
-    el('div', { class: 'a3-line a3-small' }, ui.light, ui.nudge, ui.recal));
-  ui.status = el('p', { class: 'a3-status', role: 'status', 'aria-live': 'polite' }, '');
-  ui.detailsBtn = btn('Details', () => { const o = ui.details.hidden; ui.details.hidden = !o; ui.detailsBtn.setAttribute('aria-expanded', String(o)); }, { 'aria-expanded': 'false', class: 'a3-details-btn' });
-  ui.joints = el('p', { class: 'a3-small' });
-  ui.ikline = el('p', { class: 'a3-small' });
-  ui.calline = el('p', { class: 'a3-small' });
-  ui.frames = el('input', { type: 'checkbox', id: 'a3f' + Math.random().toString(36).slice(2, 7) });
-  ui.details = el('div', { class: 'a3-details', hidden: '' }, ui.joints, ui.ikline, ui.calline,
-    el('p', { class: 'a3-small' }, `Simulated camera (not the course camera's values): ${K.W} × ${K.H} px, fx ${K.fx}, fy ${K.fy}, cx ${K.cx}, cy ${K.cy}, radial k1 ${K.k1}, k2 ${K.k2}. Board 7 × 10 squares of 25 mm; board origin at (${V.BOARD.origin.join(', ')}) m in the arm's base frame, axes parallel.`),
-    el('label', { class: 'a3-check' }, ui.frames, ' Show frames (camera, board, arm base)'));
-  root.append(ui.line, el('div', { class: 'a3-stage' }, ui.view, ui.cam), ui.status, ui.balls, ui.detailsBtn, ui.details);
-
-  let started = false;
+  // Colour choice for placing balls (part of the first flow step)
+  ui.colours = V.COLORS.map(c => el('button', { type: 'button', 'aria-pressed': String(c === 'red'), 'aria-label': `${LABEL[c]} balls`, onclick: () => pickColour(c) },
+    el('span', { class: 'ds-sw', style: `background:#${RGB[c].toString(16).padStart(6, '0')}` }), LABEL[c]));
+  ui.place = el('span', { class: 'ds-step' }, 'Place balls ', el('span', { class: 'ds-group', role: 'group', 'aria-label': 'Ball colour to place' }, ...ui.colours));
+  function buildFlow(m) {
+    if (m === 'sort') {
+      const b = shell.setFlow([{ node: ui.place, id: 'place' }, { primary: 'Sort', id: 'sort', onClick: () => api.runSort && api.runSort() }],
+        [{ label: 'Scatter', id: 'scatter', onClick: () => api.scatter && api.scatter() }, { label: 'Reset', id: 'reset', onClick: () => api.reset && api.reset() }]);
+      ui.sort = b.sort; ui.scatter = b.scatter; ui.reset = b.reset;
+    } else {
+      const b = shell.setFlow([{ step: 'Your move: click a square', id: 'human' }, { step: 'Arm’s move', id: 'arm' }],
+        [{ label: 'New game', id: 'reset', onClick: () => api.reset && api.reset() }]);
+      ui.sort = ui.scatter = null; ui.reset = b.reset;
+    }
+  }
+  ui.buildFlow = buildFlow;
+  // Camera inset
+  ui.canvas = el('canvas', { width: K.W, height: K.H, role: 'img', 'aria-label': 'Camera image at the selected pipeline stage' });
+  shell.sideBody.append(ui.canvas);
+  // Details
+  ui.light = el('button', { type: 'button', text: 'Lighting: Normal', onclick: () => api.cycleLight && api.cycleLight() });
+  ui.nudge = el('button', { type: 'button', text: 'Nudge camera', onclick: () => api.nudge && api.nudge() });
+  ui.recal = el('button', { type: 'button', text: 'Recalibrate', onclick: () => api.recal && api.recal() });
+  ui.balls = el('ol', { 'aria-live': 'off' });
+  ui.joints = el('p'); ui.ikline = el('p'); ui.calline = el('p');
+  ui.frames = el('input', { type: 'checkbox' });
+  const R = K.raw;
+  shell.detailsBody.prepend(
+    el('p', { text: 'Detected balls (pixel, board, base frame):' }), ui.balls, ui.joints, ui.ikline, ui.calline,
+    el('p', { text: `Camera model: fisheye, Kannala-Brandt, f ${R.f} px, centre (${R.cx}, ${R.cy}), k1 ${R.k[0]}, k2 ${R.k[1]}, field of view ${Math.round(2 * R.thetaMax * 180 / Math.PI)}°, ${K.W} × ${K.H} px. Undistorted image: pinhole, fx ${K.fx}, fy ${K.fy}. Board: 7 × 10 squares of 25 mm, origin (${V.BOARD.origin.join(', ')}) m in the arm base frame.` }),
+    el('div', { class: 'ds-more' }, ui.light, ui.nudge, ui.recal),
+    el('label', { class: 'ds-check' }, ui.frames, 'Show frames (camera, board, arm base)'));
+  buildFlow('sort');
+  shell.coach('sort', [
+    { key: 'place', text: 'Runs in your browser. Click the board to place a ball.', target: () => ui.view, at: [0.45, 0.62] },
+    { key: 'drag', text: 'Drag a ball to move it.', target: () => ui.view, at: [0.45, 0.62] },
+    { key: 'sort', text: 'Press Sort.', target: () => ui.sort },
+  ]);
+  shell.coach('ttt', [
+    { key: 'move', text: 'Runs in your browser. Click a square to place a green ball.', target: () => ui.view, at: [0.45, 0.62] },
+  ]);
   const io = new IntersectionObserver((es) => {
-    if (!started && es.some(e => e.isIntersecting)) { started = true; io.disconnect(); start(root, ui).catch(err => { ui.loading.textContent = 'Could not load the 3D view.'; console.error(err); }); }
+    if (es.some(e => e.isIntersecting)) { io.disconnect(); start(root, ui).catch(err => { ui.loading.textContent = 'Could not load the 3D view.'; console.error(err); }); }
   }, { rootMargin: '300px' });
   io.observe(root);
-
-  // Handlers are filled in by start(); until then the buttons do nothing.
-  let api = {};
-  function setMode(m) { api.setMode && api.setMode(m); }
-  function pickColour(c) { ui.colours.forEach((b, i) => b.setAttribute('aria-pressed', String(V.COLORS[i] === c))); api.colour = c; }
-  function runSort() { api.runSort && api.runSort(); }
-  function scatter() { api.scatter && api.scatter(); }
-  function reset() { api.reset && api.reset(); }
-  function setStage(i) { ui.stageBtns.forEach((b, k) => b.setAttribute('aria-pressed', String(k === i))); api.stage = i; api.redraw && api.redraw(); }
-  function cycleLight() { api.cycleLight && api.cycleLight(); }
-  function nudgeCamera() { api.nudge && api.nudge(); }
-  function recalibrate() { api.recal && api.recal(); }
-  api.colour = 'red'; api.stage = 4;
-  ui.api = api;
-  ui.tttNote.hidden = true;
+  function pickColour(c) { ui.colours.forEach((b, i) => b.setAttribute('aria-pressed', String(V.COLORS[i] === c))); api.colour = c; api.onColour && api.onColour(); }
 }
 
 async function start(root, ui) {
@@ -227,6 +220,7 @@ async function start(root, ui) {
     loadMesh('gripper_left_palm', palmMat, GL), loadMesh('gripper_right_palm', palmMat, GR),
   ]);
   ui.loading.remove();
+  ui.shell.startCoach();
 
   // ---------- balls ----------
   const ballGeo = new THREE.SphereGeometry(BALL_R, 32, 20);

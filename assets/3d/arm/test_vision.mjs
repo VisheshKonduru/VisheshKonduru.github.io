@@ -6,12 +6,20 @@ const K = V.INTRINSICS, R = 0.012;
 let seed = 7; const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
 const CAM_C = [0.36, 0, 0.21], CAM_T = [0.12, 0, 0.02];
 
-function render(cam, balls) {           // ideal pinhole image (what the undistortion stage outputs)
+// Ray-traced raw fisheye frame, then the demo's own undistortion remap: the same path the browser runs.
+const LUT = V.buildUndistortLUT(K);
+function render(cam, balls) {
+  const raw = renderRaw(cam, balls), out = new Uint8ClampedArray(K.W * K.H * 4);
+  V.undistortImage(raw, out, LUT, K.W, K.H); return out;
+}
+function renderRaw(cam, balls) {
   const img = new Uint8ClampedArray(K.W * K.H * 4);
   const Rt = [0, 1, 2].map(j => cam.R.map(r => r[j]));   // R transpose
   const zt = V.BOARD.origin[2];
   for (let j = 0; j < K.H; j++) for (let i = 0; i < K.W; i++) {
-    const x = (i + 0.5 - K.cx) / K.fx, y = (j + 0.5 - K.cy) / K.fy;
+    const n = V.rawToNorm(i + 0.5, j + 0.5, K);
+    if (!n) { const o = 4 * (j * K.W + i); img[o + 3] = 255; continue; }
+    const [x, y] = n;
     const d = V.mat3vec(Rt, [x, y, 1]);
     let col = [120, 110, 100], tBest = Infinity;
     const t = (zt - cam.C[2]) / d[2];
@@ -31,11 +39,17 @@ const RGB = { red: [200, 30, 30], orange: [240, 110, 20], yellow: [235, 195, 30]
 
 // 1. distortion round trip
 let dmax = 0;
-for (let k = 0; k < 2000; k++) { const u = rnd() * K.W, v = rnd() * K.H; const [x, y] = V.undistortNorm((u - K.cx) / K.fx, (v - K.cy) / K.fy, K); const [xd, yd] = V.distortNorm(x, y, K); dmax = Math.max(dmax, Math.hypot(K.fx * xd + K.cx - u, K.fy * yd + K.cy - v)); }
+for (let k = 0; k < 2000; k++) { const u = rnd() * K.W, v = rnd() * K.H; const n = V.rawToNorm(u, v, K); if (!n) continue; const [ur, vr] = V.rawPixel(n[0], n[1], K); dmax = Math.max(dmax, Math.hypot(ur - u, vr - v)); }
+// How strongly the lens bends the board: sagitta (bow) of the board's two long edges, raw vs undistorted.
+const camS = V.makeCamera(CAM_C, CAM_T);
+function bow(dist) { let worst = 0; for (const x of [0, V.BOARD.Lx]) { const a = V.project(camS, V.boardToBase([x, 0]), dist), b = V.project(camS, V.boardToBase([x, V.BOARD.Ly]), dist), m = V.project(camS, V.boardToBase([x, V.BOARD.Ly / 2]), dist);
+  const L = Math.hypot(b[0] - a[0], b[1] - a[1]); worst = Math.max(worst, Math.abs((b[0] - a[0]) * (a[1] - m[1]) - (a[0] - m[0]) * (b[1] - a[1])) / L); } return worst; }
+const bowRaw = bow(true), bowUnd = bow(false);
 
 // 2. calibration from the rendered board, seeded by a rough guess (true pose with 3 px offset)
 const cam = V.makeCamera(CAM_C, CAM_T);
 const empty = render(cam, []);
+if (process.env.PNG) { const { writePng } = await import(process.env.PNG); writePng('raw.png', renderRaw(cam, []), K.W, K.H); writePng('und.png', empty, K.W, K.H); }
 const seedPredict = (b) => { const p = V.project(cam, V.boardToBase(b), false); return [p[0] + 3, p[1] - 2]; };
 const calib = V.calibrateFromImage(empty, K, seedPredict);
 const camErr = Math.hypot(...V.boardToBase(calib.cal.Cb, calib.cal.Cb[2]).map((v, i) => v - CAM_C[i])) * 1000;
@@ -77,10 +91,11 @@ const fixed = trial(camN, recal.cal, 15);
 
 const f = (x) => x.toFixed(2);
 console.log(`distortion round trip max ${dmax.toExponential(1)} px`);
+console.log(`board edge bow: raw ${f(bowRaw)} px, undistorted ${f(bowUnd)} px`);
 console.log(`calibration: ${calib.used}/${calib.total} corners, reprojection RMS ${f(calib.rms)} px, recovered camera centre error ${f(camErr)} mm`);
 console.log(`detection, ${good.n} balls: mean ${f(good.mean)} mm, max ${f(good.max)} mm, missed ${good.missed}`);
 console.log(`same without ball-height correction: mean ${f(noH)} mm`);
 console.log(`camera nudged, stale calibration: mean ${f(stale.mean)} mm, max ${f(stale.max)} mm`);
 console.log(`after recalibration (${recal.used} corners, RMS ${f(recal.rms)} px): mean ${f(fixed.mean)} mm, max ${f(fixed.max)} mm`);
-const ok = dmax < 1e-6 && calib.rms < 0.5 && good.max < 2.5 && good.missed === 0 && stale.mean > 3 * fixed.mean && fixed.max < 3;
+const ok = dmax < 1e-6 && bowRaw > 12 && bowUnd < 0.01 && calib.rms < 0.5 && good.max < 2.5 && good.missed === 0 && stale.mean > 3 * fixed.mean && fixed.max < 3;
 console.log(ok ? 'PASS' : 'FAIL'); process.exit(ok ? 0 : 1);

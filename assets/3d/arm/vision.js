@@ -39,8 +39,15 @@ function jacobiEigen(S) {
   return { values: A.map((r, i) => r[i]), vectors: V };
 }
 
-// ---------- camera model (simulated camera, not the course camera) ----------
-export const INTRINSICS = { W: 480, H: 320, fx: 380, fy: 380, cx: 240, cy: 160, k1: -0.12, k2: 0.02 };
+// ---------- camera model (simulated camera) ----------
+// The raw image comes from a fisheye lens (Kannala-Brandt / equidistant model):
+//   theta = atan(r) of the ideal ray, theta_d = theta (1 + k1 theta^2 + k2 theta^4 + k3 theta^6 + k4 theta^8),
+//   raw pixel = f * theta_d * (x, y) / r + c. Rays beyond thetaMax fall outside the lens circle (black).
+// Calibration and detection run on the undistorted (rectified pinhole) image with fx, fy, cx, cy.
+export const INTRINSICS = {
+  W: 640, H: 480, fx: 330, fy: 330, cx: 320, cy: 240,
+  raw: { f: 290, cx: 320, cy: 240, k: [-0.16, 0.02, 0, 0], thetaMax: 1.2 },
+};
 
 // Camera looking from C at target, image x right, y down, z forward (OpenCV convention).
 export function makeCamera(C, target, K = INTRINSICS) {
@@ -49,25 +56,37 @@ export function makeCamera(C, target, K = INTRINSICS) {
   const d = cross(f, r);
   return { ...K, C: [...C], R: [r, d, f] };   // rows of R: camera axes expressed in base frame
 }
-export function distortNorm(x, y, K) {
-  const r2 = x * x + y * y, s = 1 + K.k1 * r2 + K.k2 * r2 * r2;
-  return [x * s, y * s];
+const thetaD = (t, k) => { const t2 = t * t; return t * (1 + t2 * (k[0] + t2 * (k[1] + t2 * (k[2] + t2 * k[3])))); };
+// Ideal normalised point (x, y) -> raw fisheye pixel.
+export function rawPixel(x, y, K) {
+  const R = K.raw, r = Math.hypot(x, y), s = r > 1e-12 ? thetaD(Math.atan(r), R.k) / r : 1;
+  return [R.f * x * s + R.cx, R.f * y * s + R.cy];
 }
-export function undistortNorm(xd, yd, K) {
-  let x = xd, y = yd;
-  for (let i = 0; i < 12; i++) { const r2 = x * x + y * y, s = 1 + K.k1 * r2 + K.k2 * r2 * r2; x = xd / s; y = yd / s; }
-  return [x, y];
+// Raw fisheye pixel -> ideal normalised point. Newton on theta_d(theta). null outside the lens circle.
+export function rawToNorm(u, v, K) {
+  const R = K.raw, xd = (u - R.cx) / R.f, yd = (v - R.cy) / R.f, td = Math.hypot(xd, yd);
+  if (td < 1e-12) return [0, 0];
+  let t = td;
+  for (let i = 0; i < 20; i++) {
+    const t2 = t * t, k = R.k, g = thetaD(t, k) - td;
+    const dg = 1 + t2 * (3 * k[0] + t2 * (5 * k[1] + t2 * (7 * k[2] + t2 * 9 * k[3])));
+    const dt = g / dg; t -= dt; if (Math.abs(dt) < 1e-12) break;
+  }
+  if (t > R.thetaMax) return null;
+  const s = Math.tan(t) / td;
+  return [xd * s, yd * s];
 }
-// Base-frame point -> pixel. distorted=false gives the ideal (undistorted) pixel.
+// Base-frame point -> pixel. distorted=true gives the raw fisheye pixel, false the undistorted one.
 export function project(cam, P, distorted = true) {
   const pc = mat3vec(cam.R, sub(P, cam.C));
-  let x = pc[0] / pc[2], y = pc[1] / pc[2];
-  if (distorted) [x, y] = distortNorm(x, y, cam);
+  const x = pc[0] / pc[2], y = pc[1] / pc[2];
+  if (distorted) { const [u, v] = rawPixel(x, y, cam); return [u, v, pc[2]]; }
   return [cam.fx * x + cam.cx, cam.fy * y + cam.cy, pc[2]];
 }
+// Raw pixel -> undistorted pixel (null outside the lens circle).
 export function undistortPixel(u, v, K) {
-  const [x, y] = undistortNorm((u - K.cx) / K.fx, (v - K.cy) / K.fy, K);
-  return [K.fx * x + K.cx, K.fy * y + K.cy];
+  const n = rawToNorm(u, v, K); if (!n) return null;
+  return [K.fx * n[0] + K.cx, K.fy * n[1] + K.cy];
 }
 
 // ---------- board ----------
@@ -137,8 +156,8 @@ export function pixelToBase(cal, u, v, h) {
 export function buildUndistortLUT(K) {
   const lut = new Float32Array(K.W * K.H * 2);
   for (let j = 0; j < K.H; j++) for (let i = 0; i < K.W; i++) {
-    const [xd, yd] = distortNorm((i + 0.5 - K.cx) / K.fx, (j + 0.5 - K.cy) / K.fy, K);
-    const k = (j * K.W + i) * 2; lut[k] = K.fx * xd + K.cx - 0.5; lut[k + 1] = K.fy * yd + K.cy - 0.5;
+    const [u, v] = rawPixel((i + 0.5 - K.cx) / K.fx, (j + 0.5 - K.cy) / K.fy, K);
+    const k = (j * K.W + i) * 2; lut[k] = u - 0.5; lut[k + 1] = v - 0.5;
   }
   return lut;
 }
