@@ -17,7 +17,7 @@ function mount(root) {
   view.append(h('img', { class: 'mq-poster', src: POSTER, alt: 'Render of the MQP VEX U robot: an X-drive robot with omni wheels and a roller column' }),
     h('p', { class: 'ds-loading', text: 'Loading model' }));
   const legend = h('ul', { class: 'mq-legend', role: 'list' });
-  const pLegend = h('section', { class: 'ds-panel' }, h('h3', { class: 'ds-ro-h', text: 'Part groups' }), legend);
+  const pLegend = h('div', { class: 'ds-panel' }, h('h3', { class: 'ds-ro-h', text: 'Part groups' }), legend);
   shell.panels.append(pLegend);
   shell.readout([{ id: 'model', title: 'Model', items: [
     { id: 'tris', label: 'Triangles', desc: 'After reducing the Onshape CAD for the browser.' },

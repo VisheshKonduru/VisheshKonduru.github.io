@@ -52,7 +52,7 @@
 
 /* Readout: labelled values, grouped by what is being computed. */
 .ds-ro-g + .ds-ro-g { margin-top: 14px; }
-.ds-ro-h { font-size: 17px; font-weight: 600; margin: 0 0 4px; color: var(--ds-ink); }
+.ds .ds-ro-h { font-size: 17px; line-height: 1.35; font-weight: 600; margin: 0 0 6px; padding: 0; border: 0; color: var(--ds-ink); letter-spacing: 0; text-transform: none; }
 .ds-ro-list { margin: 0; }
 .ds-ro-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 12px; padding: 5px 0; }
 .ds-ro-row dt { font-size: 16px; color: var(--ds-ink); }

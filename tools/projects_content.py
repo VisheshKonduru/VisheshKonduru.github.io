@@ -54,61 +54,21 @@ IMPORTMAP = ('<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr
              '"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>')
 
 
-def live(how, inner, src, caption="", css=""):
+def live(inner, src, css=""):
     """Live demo block, placed under the project's spec list. The page's lazy loader imports
     `src` (relative to the project page) only when the block scrolls near, so only demos in
-    view load. The demo folders' own index.html files are dev harnesses and are never linked."""
-    cap = f"<figcaption>{caption}</figcaption>" if caption else ""
-    link = f'<link rel="stylesheet" href="../{css}">' if css else ""
+    view load. Every demo builds the shared layout from assets/3d/demo-shell.js (tabs, flow row,
+    view, status, column of live plots). The demo folders' own index.html files are dev harnesses."""
+    link = '<link rel="stylesheet" href="../assets/3d/demo-shell.css">' + (f'<link rel="stylesheet" href="../{css}">' if css else "")
     return (f'{link}{IMPORTMAP}<div class="live" id="live-demo" data-demo="../{src}">'
-            f'<h2 class="live-head">Try it live</h2><p class="live-how">{how}</p>'
-            f'<figure class="fig live-fig">{inner}{cap}</figure></div>')
+            f'<h2 class="live-head">Try it live</h2>'
+            f'<div class="live-fig">{inner}</div></div>')
 
 
-ARM_DEMO = live(
-    "Click the board to place a ball, or drag a ball to move it, then press Sort. "
-    "Choose Tic-tac-toe to play against the arm: you are green, so click a square or press 1 to 9.",
-    "<div data-arm3d></div>", "assets/3d/arm/arm-demo.js",
-    "Live: the camera finds each ball, converts its position to the arm's frame, and the arm sorts it or plays tic-tac-toe. "
-    "This is a simulation with its own camera parameters, not a recording; nudge the camera or dim the lights to see detection drift.")
-
-TB3_DEMO = live(
-    "In Autonomous mapping, click the floor to send the robot a goal, or click the scene and drive with W A S D or the arrow keys. "
-    "In Autonomous localization, drag the robot to a new spot, then click the floor to set a destination.",
-    """<div class="tb" data-tb3>
-<div id="tabs" class="tb-tabs" role="tablist" aria-label="Scene">
-  <button role="tab" type="button" data-scene="A" aria-selected="true">Autonomous mapping</button>
-  <button role="tab" type="button" data-scene="B" aria-selected="false" tabindex="-1">Autonomous localization</button>
-</div>
-<div id="stage" class="tb-stage" tabindex="0" role="application"
-     aria-label="3D scene: TurtleBot3 Burger in a maze with LiDAR. Click the floor to set a goal. In mapping, focus here and use W A S D or arrow keys to drive. In localization, drag the robot to move it.">
-  <div id="loading" class="tb-loading">Loading scene</div>
-</div>
-<div id="bar" class="tb-bar" role="toolbar" aria-label="Simulation controls">
-  <button id="play" type="button">Pause</button>
-  <button id="reset" type="button">Reset</button>
-  <button id="map" type="button" aria-pressed="true">Show map</button>
-  <button id="rays" type="button" aria-pressed="false">Show rays</button>
-  <span id="hint" class="tb-hint">Click the floor to send a goal. WASD or arrows to drive.</span>
-  <span id="status" class="tb-status" aria-live="polite"></span>
-</div>
-</div>""", "assets/3d/turtlebot/embed.js",
-    "A simulated TurtleBot3 Burger with its LDS-01 LiDAR (360 rays, 0.12 to 3.5 m, 5 Hz) cast against the maze walls. "
-    "It builds a log-odds occupancy grid at 0.05 m and explores frontiers with A*. This runs live in the browser; it is not the course code.")
-
-MQP_DEMO = live(
-    "Drag to turn the robot and scroll or pinch to zoom. Press Exploded view to pull the parts apart, "
-    "or show the 15 in cube the robot must start inside.",
-    "<div data-mqp3d></div>", "assets/3d/mqp/viewer.js",
-    "The robot's Onshape CAD, reduced for the browser.")
-
-UR5E_DEMO = live(
-    "Drag the ring at the tool and the arm follows. Choose Plan a path, drag the faint goal arm or the grey obstacles, then press Plan and move.",
-    "<div data-ur5e3d></div>", "assets/3d/ur5e/ur5e-demo.js",
-    "UR5e, simulated live from its published masses and inertias. Teal arrows S<sub>1</sub> to S<sub>6</sub> are the joint screw axes in the current pose, "
-    "and the grey ellipsoid at the tool is its velocity manipulability ellipsoid. Torques come from recursive Newton-Euler. "
-    "The arm moves by integrating its forward dynamics at 1 kHz under the selected controller.",
-    css="assets/3d/ur5e/ur5e.css")
+ARM_DEMO = live("<div data-arm3d></div>", "assets/3d/arm/arm-demo.js")
+TB3_DEMO = live("<div data-tb3></div>", "assets/3d/turtlebot/embed.js")
+MQP_DEMO = live("<div data-mqp3d></div>", "assets/3d/mqp/viewer.js")
+UR5E_DEMO = live("<div data-ur5e3d></div>", "assets/3d/ur5e/ur5e-demo.js", css="assets/3d/ur5e/ur5e.css")
 
 
 KATEX = ('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">'

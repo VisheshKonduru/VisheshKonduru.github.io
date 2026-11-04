@@ -29,24 +29,7 @@
     <p class="head-skills"><span>Skills</span> ROS, SLAM, A*, AMCL, Python</p>
     
   </header>
-  <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script><div class="live" id="live-demo" data-demo="../assets/3d/turtlebot/embed.js"><h2 class="live-head" id="try-it-live">Try it live</h2><p class="live-how">In Autonomous mapping, click the floor to send the robot a goal, or click the scene and drive with W A S D or the arrow keys. In Autonomous localization, drag the robot to a new spot, then click the floor to set a destination.</p><figure class="fig live-fig"><div class="tb" data-tb3>
-<div id="tabs" class="tb-tabs" role="tablist" aria-label="Scene">
-  <button role="tab" type="button" data-scene="A" aria-selected="true">Autonomous mapping</button>
-  <button role="tab" type="button" data-scene="B" aria-selected="false" tabindex="-1">Autonomous localization</button>
-</div>
-<div id="stage" class="tb-stage" tabindex="0" role="application"
-     aria-label="3D scene: TurtleBot3 Burger in a maze with LiDAR. Click the floor to set a goal. In mapping, focus here and use W A S D or arrow keys to drive. In localization, drag the robot to move it.">
-  <div id="loading" class="tb-loading">Loading scene</div>
-</div>
-<div id="bar" class="tb-bar" role="toolbar" aria-label="Simulation controls">
-  <button id="play" type="button">Pause</button>
-  <button id="reset" type="button">Reset</button>
-  <button id="map" type="button" aria-pressed="true">Show map</button>
-  <button id="rays" type="button" aria-pressed="false">Show rays</button>
-  <span id="hint" class="tb-hint">Click the floor to send a goal. WASD or arrows to drive.</span>
-  <span id="status" class="tb-status" aria-live="polite"></span>
-</div>
-</div><figcaption>A simulated TurtleBot3 Burger with its LDS-01 LiDAR (360 rays, 0.12 to 3.5 m, 5 Hz) cast against the maze walls. It builds a log-odds occupancy grid at 0.05 m and explores frontiers with A*. This runs live in the browser; it is not the course code.</figcaption></figure></div>
+  <link rel="stylesheet" href="../assets/3d/demo-shell.css"><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script><div class="live" id="live-demo" data-demo="../assets/3d/turtlebot/embed.js"><h2 class="live-head" id="try-it-live">Try it live</h2><div class="live-fig"><div data-tb3></div></div></div>
   <div class="chapter-body">
     <aside class="toc-col"><nav class="toc" aria-label="Sections"><p>On this page</p><ol><li><a href="#exploring">Exploring</a></li><li><a href="#mapping-and-planning">Mapping and planning</a></li><li><a href="#finding-itself">Finding itself</a></li></ol></nav></aside>
     <div class="article">

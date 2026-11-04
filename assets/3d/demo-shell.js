@@ -84,7 +84,7 @@ export function createShell(root, opts) {
         cells[it.id] = v;
         dl.append(h('div', { class: 'ds-ro-row' }, h('dt', { text: it.label }), h('dd', {}, v, it.unit ? h('span', { class: 'ds-ro-u', text: ' ' + it.unit }) : null), it.desc ? h('p', { class: 'ds-ro-d', text: it.desc }) : null));
       }
-      const sec = h('section', { class: 'ds-ro-g' }, h('h3', { class: 'ds-ro-h', text: g.title }), dl);
+      const sec = h('div', { class: 'ds-ro-g' }, h('h3', { class: 'ds-ro-h', text: g.title }), dl);
       groupEls[g.id] = sec; ro.append(sec);
     }
   }
@@ -95,7 +95,7 @@ export function createShell(root, opts) {
   // panel(title, height) -> { sec, canvas, draw(fn) }; fn(ctx, w, h, colours) runs on a DPR-sized canvas.
   function panel(title, height = 120) {
     const canvas = h('canvas', { class: 'ds-plot', style: `height:${height}px`, role: 'img', 'aria-label': title });
-    const sec = h('section', { class: 'ds-panel' }, h('h3', { class: 'ds-ro-h', text: title }), canvas);
+    const sec = h('div', { class: 'ds-panel' }, h('h3', { class: 'ds-ro-h', text: title }), canvas);
     panels.append(sec);
     const P = { sec, canvas, last: 0,
       draw(fn, force = false) {

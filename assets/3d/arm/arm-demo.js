@@ -419,7 +419,7 @@ async function start(root, ui) {
       const X = (b) => L + b[1] * 1000 * sc, Y = (b) => T + (V.BOARD.Lx - b[0]) * 1000 * sc;
       c.strokeStyle = C.ink2; c.lineWidth = 1; c.strokeRect(L, T, V.BOARD.Ly * 1000 * sc, V.BOARD.Lx * 1000 * sc);
       c.fillStyle = C.ink2; c.textAlign = 'left'; c.fillText('0', L - 12, T + V.BOARD.Lx * 1000 * sc + 14); c.textAlign = 'right';
-      c.fillText(`${V.BOARD.Ly * 1000}`, L + V.BOARD.Ly * 1000 * sc, T + V.BOARD.Lx * 1000 * sc + 14); c.fillText(`${V.BOARD.Lx * 1000}`, L - 4, T + 9); c.textAlign = 'left';
+      c.fillText(`${Math.round(V.BOARD.Ly * 1000)}`, L + V.BOARD.Ly * 1000 * sc, T + V.BOARD.Lx * 1000 * sc + 14); c.fillText(`${Math.round(V.BOARD.Lx * 1000)}`, L - 4, T + 9); c.textAlign = 'left';
       for (const b of balls) { if (b.parent !== ros || !onBoard(b.position.x, b.position.y)) continue; const bb = V.baseToBoard([b.position.x, b.position.y]);
         c.strokeStyle = '#' + RGB[b.userData.colour].toString(16).padStart(6, '0'); c.lineWidth = 1.5; c.beginPath(); c.arc(X(bb), Y(bb), BALL_R * 1000 * sc, 0, 7); c.stroke(); }
       for (const d of ok) { c.fillStyle = C.ink; c.beginPath(); c.arc(X(d.boardC), Y(d.boardC), 2.5, 0, 7); c.fill(); }
