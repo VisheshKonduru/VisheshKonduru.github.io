@@ -411,3 +411,5 @@ dialog.lb img { max-width: calc(100vw - 48px); max-height: calc(100vh - 96px); w
   .act-btn-l { display: none; }
   .jg-frame .todo { font-size: 14px; padding: 8px; }
 }
+
+.wip { position: fixed; right: 16px; bottom: 16px; z-index: 50; margin: 0; padding: 8px 14px; background: #c62828; color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .02em; border-radius: 4px; }

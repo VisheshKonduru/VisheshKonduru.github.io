@@ -1,10 +1,10 @@
 """Activities page content. Facts come only from the old Journey page, the resume
-.tex files and the existing pages. Anything not known is an owner TODO.
+.tex files and the existing pages. Anything not known is listed in todo (rendered only as "More coming soon.").
 
 Each activity:
   id, label (short, shown on the photo), title, years, role, honors, text (HTML),
   cover: (src, alt) or None, more: list of extra media HTML (see media helpers in build.py),
-  todo: list of missing facts shown as owner TODO notes.
+  todo: list of missing facts (not shown on the page).
 """
 
 ACTIVITIES = [

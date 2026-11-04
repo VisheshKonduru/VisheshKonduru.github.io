@@ -47,7 +47,7 @@ def loop(src, caption=""):
 
 
 def todo(text):
-    return f'<figure class="fig"><div class="todo">{text}</div></figure>'
+    return '<figure class="fig"><div class="todo">Coming soon</div></figure>'
 
 
 IMPORTMAP = ('<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",'

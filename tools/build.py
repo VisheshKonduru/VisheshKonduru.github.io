@@ -214,6 +214,7 @@ def index_page():
     </div>
   </div>
 </section>
+<p class="wip">Work in progress</p>
 
 <section id="projects">
   <div class="wrap">
@@ -290,7 +291,7 @@ def activities_page():
             media = f'<img class="jg-media" src="{src}" alt="" data-alt="{alt}">'
         else:
             r = shapes[n % len(shapes)]
-            media = f'<div class="jg-media todo">Owner TODO: photo</div>'
+            media = f'<div class="jg-media todo">Coming soon</div>'
         tiles.append(
             f'<li class="jg-item" style="--r:{r:.4f}" data-r="{r:.4f}">'
             f'<a class="jg-link" href="#{a["id"]}" data-act="{a["id"]}" aria-expanded="false">'
@@ -301,7 +302,7 @@ def activities_page():
         missing = ""
         if a["todo"] or not a["years"] or not a["role"]:
             items = list(a["todo"])
-            missing = todo("Owner TODO: " + "; ".join(items), "todo-text") if items else ""
+            missing = todo("More coming soon.", "todo-text") if items else ""
         more = "".join(_media(m) for m in a["more"])
         panels.append(f"""<template id="act-{a["id"]}" data-label="{a["label"]}">
 <h2 class="act-title" id="act-title">{a["title"]}</h2>
