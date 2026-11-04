@@ -34,8 +34,9 @@ ACTIVITIES = [
         role=None,
         honors=[],
         text="<p>I started building robots in high school on FRC and VEX teams.</p>",
-        cover=("assets/video/hs_frc_climb_poster.jpg", "Our 2021-22 FRC robot climbing in the endgame."),
+        cover=("assets/img/activities/frc_1.jpg", "Me in the pits with our 2022-23 robot, Team 3735."),
         more=[
+            ("img", "assets/img/activities/frc_2.jpg", "Our 2022-23 robot in the pits."),
             ("video", "assets/video/hs_frc_climb.mp4", "Our 2021-22 FRC robot climbing in the endgame."),
             ("video", "assets/video/hs_outreach.mp4", "FRC Team 3735 VorTX at Siemens Energy Day."),
         ],
@@ -44,10 +45,11 @@ ACTIVITIES = [
     dict(
         id="vrc", label="VRC", title="VEX Robotics Competition",
         years="High school",
-        role=None, honors=[],
+        role=None, honors=["TSA Texas State Championship winner, VEX, 2023"],
         text="<p>Alongside FRC, I built robots on a VEX team in high school.</p>",
-        cover=None, more=[],
-        todo=["Photo: high school VEX robot", "Team name and number", "Role on the team", "Exact years"],
+        cover=("assets/img/activities/vrc_1.jpg", "Our team with our VEX robot at the 2023 TSA Texas State Championship."),
+        more=[("img", "assets/img/activities/vrc_2.jpg", "Our team with our robots at the 2023 TSA Texas State Championship.")],
+        todo=["Team name and number", "Role on the team", "Exact years"],
     ),
     dict(
         id="ftc", label="FTC", title="FIRST Tech Challenge",
@@ -59,10 +61,11 @@ ACTIVITIES = [
     dict(
         id="orchestra", label="Orchestra", title="Orchestra",
         years="High school and WPI",
-        role=None, honors=[],
+        role="Violin", honors=[],
         text="<p>I play in orchestra at WPI, and did in high school.</p>",
-        cover=None, more=[],
-        todo=["Photo: orchestra", "Instrument", "Ensemble names and years"],
+        cover=("assets/img/activities/orchestra_young.jpg", "Me playing violin when I was younger."),
+        more=[("img", "assets/img/activities/orchestra_wpi.jpg", "Playing violin in a string section, left.")],
+        todo=["Ensemble names and years"],
     ),
     dict(
         id="sase", label="SASE", title="SASE, Society of Asian Scientists and Engineers",
