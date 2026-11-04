@@ -1,0 +1,43 @@
+/* UR5e dynamics demo. Inherits type and colour from the page (ui-b tokens, with fallbacks). */
+.u5 { --u5-ink: var(--ink, #16171a); --u5-ink2: var(--ink-2, #3d4047); --u5-ink3: var(--ink-3, #5f646c); --u5-rule: var(--rule, #dedad2); --u5-mark: var(--mark, #0f8b8d); color: var(--u5-ink); font: inherit; margin: 40px 0 8px; }
+.u5 button, .u5 select { font: inherit; color: var(--u5-ink); background: none; border: 0; padding: 0 10px; min-height: 44px; min-width: 44px; cursor: pointer; border-radius: 2px; }
+.u5 select { padding: 0 6px; text-decoration: underline; text-decoration-color: var(--u5-rule); text-underline-offset: 6px; }
+.u5 button[aria-pressed="true"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; text-decoration-color: var(--u5-mark); font-weight: 600; }
+.u5 button.u5-go { font-weight: 600; }
+.u5 button:hover, .u5 select:hover { color: var(--u5-mark); }
+.u5 button:focus-visible, .u5 select:focus-visible, .u5-view:focus-visible { outline: 2px solid var(--u5-ink); outline-offset: 2px; }
+
+.u5-view { position: relative; aspect-ratio: 16 / 10; min-height: 320px; background: var(--frame, #eeebe4); border-radius: 2px; touch-action: none; overflow: hidden; }
+.u5-view canvas { display: block; width: 100%; height: 100%; }
+.u5-loading { position: absolute; inset: 45% 0 auto; text-align: center; color: var(--u5-ink2); margin: 0; }
+.u5-overlay { position: absolute; inset: 0; pointer-events: none; }
+.u5-lab { position: absolute; left: 0; top: 0; font-size: 15px; line-height: 1; color: var(--u5-ink); white-space: nowrap; }
+.u5-lab-s { color: var(--u5-mark); font-weight: 600; font-style: italic; }
+.u5-lab-s sub { font-style: normal; }
+.u5-lab-hint { font-weight: 600; }
+
+.u5-line { display: flex; flex-wrap: wrap; align-items: center; margin: 6px 0 0 -10px; }
+.u5-sep { width: 1px; height: 20px; background: var(--u5-rule); margin: 0 8px; }
+.u5-line label { padding-left: 10px; color: var(--u5-ink2); }
+.u5-status { min-height: 3.1em; margin: 4px 0 8px; font-size: 18px; color: var(--u5-ink); max-width: 72ch; }
+
+.u5-plots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 36px; margin-top: 8px; }
+.u5-fig { margin: 0; }
+.u5-fig[hidden] { display: none; }
+.u5-title { margin: 0 0 4px; font-size: 16px; font-weight: 500; color: var(--u5-ink); }
+.u5-cap { margin: 4px 0 0; font-size: 15px; line-height: 1.45; color: var(--u5-ink2); }
+.u5-plot { display: block; width: 100%; height: 132px; }
+.u5-plot.u5-tall { height: 200px; }
+
+.u5-math { display: flex; flex-wrap: wrap; gap: 20px 48px; margin-top: 28px; font-variant-numeric: tabular-nums; }
+.u5-mat { border-collapse: separate; border-spacing: 0; font-size: 16px; }
+.u5-mat tbody td { text-align: right; padding: 2px 10px; min-width: 4.6em; }
+.u5-mat tbody tr:first-child td:first-of-type { border-top-left-radius: 0; }
+.u5-mat tbody td:first-of-type { border-left: 1.5px solid var(--u5-ink); }
+.u5-mat tbody td:last-child { border-right: 1.5px solid var(--u5-ink); }
+.u5-mat tbody tr:first-child td { padding-top: 6px; }
+.u5-mat tbody tr:last-child td { padding-bottom: 6px; }
+.u5-mat th { font-weight: 400; color: var(--u5-ink2); padding: 2px 8px; text-align: right; }
+.u5-mat thead th { text-align: right; padding-right: 10px; }
+.u5 [hidden] { display: none !important; }
+@media (max-width: 760px) { .u5-plots { grid-template-columns: 1fr; } .u5-mat { font-size: 14px; } .u5-mat tbody td { padding: 2px 6px; min-width: 3.8em; } }

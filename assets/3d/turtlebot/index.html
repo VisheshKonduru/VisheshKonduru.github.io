@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TurtleBot3 Burger: LiDAR mapping and frontier exploration</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #d9dadc; --fg: #1d1f22; --muted: #50545a; --btn: #f4f4f5; --btn-b: #a9adb3; --focus: #1a5fb4;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #232427; --fg: #e8e9eb; --muted: #a3a7ad; --btn: #303236; --btn-b: #5b5f66; --focus: #8ab4f8; }
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); }
+  body { display: flex; flex-direction: column; }
+  #stage { position: relative; flex: 1; min-height: 360px; outline: none; }
+  #stage:focus-visible { box-shadow: inset 0 0 0 3px var(--focus); }
+  #stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  #loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+  #tabs { display: flex; gap: 0; padding: 8px 12px 0; border-bottom: 1px solid var(--btn-b); }
+  #tabs button { min-height: 44px; padding: 0 16px; font: inherit; font-size: 14px; color: var(--muted); background: none;
+    border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+  #tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--fg); }
+  #tabs button:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+  #bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; }
+  #bar button {
+    min-height: 44px; min-width: 44px; padding: 0 14px; font: inherit; font-size: 14px;
+    color: var(--fg); background: var(--btn); border: 1px solid var(--btn-b); border-radius: 6px; cursor: pointer;
+  }
+  #bar button[aria-pressed="false"] { color: var(--muted); }
+  #bar button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  #status { font-size: 13px; color: var(--muted); margin-left: auto; }
+  #hint { font-size: 13px; color: var(--muted); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="tabs" role="tablist" aria-label="Scene">
+  <button role="tab" type="button" data-scene="A" aria-selected="true">Autonomous mapping</button>
+  <button role="tab" type="button" data-scene="B" aria-selected="false" tabindex="-1">Autonomous localization</button>
+</div>
+<div id="stage" tabindex="0" role="application"
+     aria-label="3D scene: TurtleBot3 Burger in a maze with LiDAR. Click the floor to set a goal. In mapping, focus here and use W A S D or arrow keys to drive. In localization, drag the robot to move it.">
+  <div id="loading">Loading scene</div>
+</div>
+<div id="bar" role="toolbar" aria-label="Simulation controls">
+  <button id="play" type="button">Pause</button>
+  <button id="reset" type="button">Reset</button>
+  <button id="map" type="button" aria-pressed="true">Show map</button>
+  <button id="rays" type="button" aria-pressed="false">Show rays</button>
+  <span id="hint">Click the floor to send a goal. WASD or arrows to drive.</span>
+  <span id="status" aria-live="polite"></span>
+</div>
+<script type="module">
+  const stage = document.getElementById('stage');
+  let started = false;
+  const go = () => { if (started) return; started = true; import('./main.js').then(m => m.start(stage)); };
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { io.disconnect(); go(); } }, { rootMargin: '200px' });
+    io.observe(stage);
+  } else go();
+</script>
+</body>
+</html>
