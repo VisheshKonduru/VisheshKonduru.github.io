@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MQP VEX U robot: interactive 3D model</title>
+<!-- Dev harness only, never linked. The real embed lives on the project page (tools/projects_content.py). -->
 <style>
   :root { --bg:#eceae6; --fg:#1d1d1f; --muted:#5b5b60; --panel:#ffffffe0; --line:#00000026; }
   [data-theme="dark"] { --bg:#18191b; --fg:#ececec; --muted:#a2a2a8; --panel:#26272be0; --line:#ffffff26; }
@@ -89,6 +90,7 @@ async function init(){
   window.__applyBg = () => { scene.background = new THREE.Color(getComputedStyle(root).getPropertyValue('--bg').trim()); };
   window.__applyBg();
 
+  // NOTE: the owner has not confirmed 15 in; the CAD measures about 14.6 x 17.4 x 22.9 in.
   // VEX U start-size limit; 15 in by default, ?cubesize=24 shows the larger VEX U class.
   const CUBE_IN = [15, 24].includes(+params.get('cubesize')) ? +params.get('cubesize') : 15;
   const IN = 0.0254, S = CUBE_IN * IN;

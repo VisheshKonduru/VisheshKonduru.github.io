@@ -63,6 +63,11 @@ setTimeout(go,2500);}})();
 (function(){{var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
 if(!h||!hero)return;function f(){{h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}}
 f();addEventListener('scroll',f,{{passive:true}});addEventListener('resize',f);}})();
+(function(){{var ds=document.querySelectorAll('[data-demo]');if(!ds.length)return;
+function load(d){{if(d.dataset.loaded)return;d.dataset.loaded='1';import(new URL(d.dataset.demo,location.href).href).catch(function(e){{console.error(e);}});}}
+if(!('IntersectionObserver' in window)){{ds.forEach(load);return;}}
+var lo=new IntersectionObserver(function(es){{es.forEach(function(e){{if(e.isIntersecting){{lo.unobserve(e.target);load(e.target);}}}});}},{{rootMargin:'300px'}});
+ds.forEach(function(d){{lo.observe(d);}});}})();
 (function(){{if(!('IntersectionObserver' in window))return;
 var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(!still){{var els=document.querySelectorAll('main > section .wrap > *, .article > *, .stop, .entry');
@@ -154,11 +159,12 @@ def project_page(p, prev, nxt):
     {honors_block(p)}
     <dl class="spec">
       <div><dt>Context</dt><dd>{p["meta"]}</dd></div>
-      <div><dt>Dates</dt><dd>{_year(p)}</dd></div>
+      {f'<div><dt>Dates</dt><dd>{_year(p)}</dd></div>' if _year(p) else ""}
       {f'<div><dt>Tools</dt><dd>{", ".join(p["tags"])}</dd></div>' if p.get("tags") else ""}
       {f'<div><dt>Links</dt><dd>{links}</dd></div>' if links else ""}
     </dl>
   </header>
+  {p.get("demo", "")}
   <div class="chapter-body">
     <aside class="toc-col">{toc_html}</aside>
     <div class="article">
@@ -180,14 +186,18 @@ def index_page():
     items = []
     for p in PROJECTS:
         thumb = (f'<img class="entry-img" src="{p["thumb"]}" alt="" loading="lazy">' if p["thumb"] else "")
-        items.append(f"""<a class="entry{" no-img" if not thumb else ""}" href="projects/{p["slug"]}.html">
+        href = f'projects/{p["slug"]}.html'
+        live = f'<p class="try"><a href="{href}#live-demo">Try it live</a></p>' if p.get("demo") else ""
+        # The title link stretches over the whole entry; "Try it live" sits above it.
+        items.append(f"""<div class="entry{" no-img" if not thumb else ""}">
   <div class="entry-media">{thumb}</div>
   <div class="entry-text">
-    <h3>{p["title"]}</h3>
+    <h3><a class="entry-link" href="{href}">{p["title"]}</a></h3>
     {honors_card(p)}
     <p>{p["blurb"]}</p>
+    {live}
   </div>
-</a>""")
+</div>""")
     body = f"""
 <section class="hero">
   <video autoplay muted loop playsinline preload="auto" poster="assets/video/hero_poster.jpg"><source src="assets/video/hero_av1.mp4" type="video/mp4; codecs=av01.0.08M.08"><source src="assets/video/hero.mp4" type="video/mp4"></video>
@@ -206,7 +216,7 @@ def index_page():
 
 <section>
   <div class="wrap">
-    <div class="section-head"><h2>Projects</h2></div>
+    <div class="section-head"><h2>Projects</h2><p class="section-note">Several of these run live in your browser.</p></div>
     <div class="index">{"".join(items)}</div>
   </div>
 </section>

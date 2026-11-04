@@ -10,7 +10,8 @@ Each body is a list of blocks:
   trio(fig(...), fig(...), fig(...)) three photos side by side
   video("path", "caption")
   todo("what goes here")             placeholder until the photo exists
-  arm3d("caption")                   live 3D arm demo (RBE-3001 only)
+
+A project with a live demo sets demo=live(...); the page puts it under the spec list.
 """
 
 
@@ -49,13 +50,71 @@ def todo(text):
     return f'<figure class="fig"><div class="todo">{text}</div></figure>'
 
 
-def arm3d(caption=""):
-    """Live RBE-3001 arm demo (three.js). Mounts into the div; loads only when scrolled near."""
+IMPORTMAP = ('<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",'
+             '"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>')
+
+
+def live(how, inner, src, caption="", css=""):
+    """Live demo block, placed under the project's spec list. The page's lazy loader imports
+    `src` (relative to the project page) only when the block scrolls near, so only demos in
+    view load. The demo folders' own index.html files are dev harnesses and are never linked."""
     cap = f"<figcaption>{caption}</figcaption>" if caption else ""
-    return ('<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",'
-            '"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>'
-            f'<figure class="fig arm3d" id="live-demo"><div data-arm3d></div>{cap}</figure>'
-            '<script type="module" src="../assets/3d/arm/arm-demo.js"></script>')
+    link = f'<link rel="stylesheet" href="../{css}">' if css else ""
+    return (f'{link}{IMPORTMAP}<div class="live" id="live-demo" data-demo="../{src}">'
+            f'<h2 class="live-head">Try it live</h2><p class="live-how">{how}</p>'
+            f'<figure class="fig live-fig">{inner}{cap}</figure></div>')
+
+
+ARM_DEMO = live(
+    "Click the board to place a ball, or drag a ball to move it, then press Sort. "
+    "Choose Tic-tac-toe to play against the arm: you are green, so click a square or press 1 to 9.",
+    "<div data-arm3d></div>", "assets/3d/arm/arm-demo.js",
+    "Live: the camera finds each ball, converts its position to the arm's frame, and the arm sorts it or plays tic-tac-toe. "
+    "This is a simulation with its own camera parameters, not a recording; nudge the camera or dim the lights to see detection drift.")
+
+TB3_DEMO = live(
+    "In Autonomous mapping, click the floor to send the robot a goal, or click the scene and drive with W A S D or the arrow keys. "
+    "In Autonomous localization, drag the robot to a new spot, then click the floor to set a destination.",
+    """<div class="tb" data-tb3>
+<div id="tabs" class="tb-tabs" role="tablist" aria-label="Scene">
+  <button role="tab" type="button" data-scene="A" aria-selected="true">Autonomous mapping</button>
+  <button role="tab" type="button" data-scene="B" aria-selected="false" tabindex="-1">Autonomous localization</button>
+</div>
+<div id="stage" class="tb-stage" tabindex="0" role="application"
+     aria-label="3D scene: TurtleBot3 Burger in a maze with LiDAR. Click the floor to set a goal. In mapping, focus here and use W A S D or arrow keys to drive. In localization, drag the robot to move it.">
+  <div id="loading" class="tb-loading">Loading scene</div>
+</div>
+<div id="bar" class="tb-bar" role="toolbar" aria-label="Simulation controls">
+  <button id="play" type="button">Pause</button>
+  <button id="reset" type="button">Reset</button>
+  <button id="map" type="button" aria-pressed="true">Show map</button>
+  <button id="rays" type="button" aria-pressed="false">Show rays</button>
+  <span id="hint" class="tb-hint">Click the floor to send a goal. WASD or arrows to drive.</span>
+  <span id="status" class="tb-status" aria-live="polite"></span>
+</div>
+</div>""", "assets/3d/turtlebot/embed.js",
+    "A simulated TurtleBot3 Burger with its LDS-01 LiDAR (360 rays, 0.12 to 3.5 m, 5 Hz) cast against the maze walls. "
+    "It builds a log-odds occupancy grid at 0.05 m and explores frontiers with A*. This runs live in the browser; it is not the course code.")
+
+MQP_DEMO = live(
+    "Drag to turn the robot and scroll or pinch to zoom. Press Exploded view to pull the parts apart, "
+    "or show the 15 in cube the robot must start inside.",
+    "<div data-mqp3d></div>", "assets/3d/mqp/viewer.js",
+    "The robot's Onshape CAD, reduced for the browser.")
+
+UR5E_DEMO = live(
+    "Drag the ring at the tool and the arm follows. Choose Plan a path, drag the faint goal arm or the grey obstacles, then press Plan and move.",
+    "<div data-ur5e3d></div>", "assets/3d/ur5e/ur5e-demo.js",
+    "UR5e, simulated live from its published masses and inertias. Teal arrows S<sub>1</sub> to S<sub>6</sub> are the joint screw axes in the current pose, "
+    "and the grey ellipsoid at the tool is its velocity manipulability ellipsoid. Torques come from recursive Newton-Euler. "
+    "The arm moves by integrating its forward dynamics at 1 kHz under the selected controller.",
+    css="assets/3d/ur5e/ur5e.css")
+
+
+KATEX = ('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">'
+         '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>'
+         '<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" '
+         'onload="renderMathInElement(document.querySelector(&#39;.article&#39;),{delimiters:[{left:&#39;$$&#39;,right:&#39;$$&#39;,display:true},{left:&#39;\\\\(&#39;,right:&#39;\\\\)&#39;,display:false}]})"></script>')
 
 
 def pair(a, b):
@@ -111,6 +170,7 @@ PROJECTS = [
         meta="Major Qualifying Project at WPI, 2025 to 2026. Team of seven, advised by Griffin Tabor, Bradley Miller and Xinming Huang.",
         blurb="A robot that plays the 2025-26 VEX game, Push Back, with no driver. It sees the field with five cameras and two LiDARs, plans with ROS 2, and picks its moves with a strategy agent trained by self-play.",
         tags=["Mechanical design", "Design under constraints", "Onshape", "SolidWorks", "Python", "C++", "ROS 2", "Nav2", "BehaviorTree.CPP", "RViz", "Gazebo", "Jetson", "OpenCV", "YOLO", "PyTorch", "Blender", "PPO"],
+        demo=MQP_DEMO,
         body=[
             p("More than 10,000 high school teams play VEX every year, all with robots driven by people. Our goal was to build one that plays the same game against a human using only what it can sense and compute on board. That means it has to see the field, know where it is, track the other robot and decide what to do next, all in real time."),
             p("The game was Push Back: a 12 by 12 foot field with 88 blocks in two colours, scored into tube-shaped goals at different heights. VEX U rules allowed this robot a 15 inch cube at the start, and only VEX's own motors."),
@@ -119,6 +179,9 @@ PROJECTS = [
             h("The robot"),
             p("The base is an X-drive: four omni wheels at 45 degrees, so the robot can move in any direction without turning first. A column of rubber-band rollers pulls blocks in, carries them up and scores them at three heights. A colour sensor in the intake spots the other team's blocks and throws them out halfway up the column. The first hopper design was an open basket, and it jammed. We replaced it with a single-file magazine that holds 10 blocks and stopped jamming."),
             p("I designed and built the whole robot. The hard part was fitting everything inside that 15 inch cube: five cameras, two SICK LiDARs, two Jetsons, the batteries, an IMU and the colour sensor, with the intake and scoring column running through the middle five inches and every sensor still getting a clear view of the field."),
+            loop("assets/3d/mqp/mqp_turntable.mp4", "The robot's CAD, rendered in Blender Cycles."),
+            pair(fig("assets/img/mqp/render_front.jpg", "Render of the CAD from the front."),
+                 fig("assets/img/mqp/render_side.jpg", "Render of the CAD from the side.")),
             pair(fig("assets/img/mqp/cad.jpg", "CAD cross-section: intake, scoring paths and camera mount."),
                  fig("assets/img/mqp/system.jpg", "How the sensors, Jetsons and VEX controller connect.")),
 
@@ -319,6 +382,7 @@ PROJECTS = [
         meta="Course project at WPI, 2025. Team of four with Olivia Cavanagh, Graham Mack and Henry Sica.",
         blurb="A 4-joint robot arm with a camera that sorts coloured balls, follows a ball around in real time, and plays tic-tac-toe against a person.",
         tags=["MATLAB", "Kinematics", "Computer vision"],
+        demo=ARM_DEMO,
         body=[
             loop("assets/video/arm_track.mp4", "The arm following a red ball in real time."),
             p("The final project for RBE 3001 brought together everything from the course's earlier labs: forward and inverse kinematics, velocity kinematics, camera calibration and image processing. The arm had to find balls of four colours on a checkerboard with its camera, pick each one up and sort it into the right bin."),
@@ -339,7 +403,6 @@ PROJECTS = [
             h("Sorting"),
             p("The camera takes one reading of every ball and its position. The arm then goes above each ball, lowers, grabs it, lifts it back up and carries it to that colour's bin. Lifting straight up first keeps the gripper clear of the other balls. We used blocking moves so that new camera readings couldn't interrupt a move halfway through."),
             loop("assets/video/arm_sort.mp4", "Sorting balls into bins by colour (2x speed)."),
-            arm3d("Live: the camera finds each ball, converts its position to the arm's frame, and the arm sorts it or plays tic-tac-toe. This is a simulation with its own camera parameters, not a recording; nudge the camera or dim the lights to see detection drift."),
 
             h("Real-time tracking"),
             p("For tracking, the gripper follows one ball of a chosen colour around the board and ignores the others. At first it was slow and lagged well behind the ball. The masking code was inefficient, and plotting and print statements were slowing every frame down. Once we cut those and rewrote the masking, the arm kept up with the ball in real time."),
@@ -355,6 +418,71 @@ PROJECTS = [
         ],
     ),
     dict(
+        slug="ur5e",
+        title="Robot dynamics and control (RBE 501 + 502)",
+        short="Robot dynamics and control (RBE 501 + 502)",
+        thumb="assets/img/ur5e/thumb.jpg",
+        meta="Coursework applied: RBE 501 (Robot Dynamics) and RBE 502 (Robot Control) at WPI.",
+        blurb="A live model of a Universal Robots UR5e that applies the kinematics, dynamics and control from RBE 501 and RBE 502, using the masses, inertias and joint limits Universal Robots publishes for the arm.",
+        tags=["JavaScript", "three.js", "Kinematics", "Dynamics", "Control", "Motion planning"],
+        demo=UR5E_DEMO,
+        body=[
+            p("A live model of a Universal Robots UR5e that applies the kinematics, dynamics and control from RBE 501 (Robot Dynamics) and RBE 502 (Robot Control) at WPI. It uses the masses, inertias and joint limits that Universal Robots publishes for the arm."),
+            p("The arm is built from the official UR5e description (Universal Robots, BSD-3-Clause): its joint origins, link masses, centres of mass, inertia tensors, joint torque limits and visual meshes. The code computes everything from those numbers while the page is open. Nothing is prerecorded."),
+            h("From RBE 501"),
+            ul("Forward kinematics by the product of exponentials, checked in a test against Universal Robots' published DH table.",
+               "The space Jacobian built from the screw axes, and the manipulability ellipsoid and measures from its eigenvalues.",
+               "Inverse kinematics by damped least squares, the method from Lecture 8.",
+               "Inverse dynamics by the recursive Newton-Euler algorithm (Lecture 18), giving the joint torques.",
+               r"Forward dynamics, solving for joint accelerations with the inverse of the mass matrix (Lecture 20). External forces enter through \(\tau = J^{T} F\) (Lecture 12).",
+               "Quintic time scaling for trajectories (Lecture 19)."),
+            h("From RBE 502"),
+            ul(r"The manipulator equation \(M(q)\ddot q + C(q,\dot q)\dot q + g(q) = \tau\).",
+               r"PD control, and PD control with gravity compensation. The lectures show that PD alone settles away from the target under gravity and that adding \(g(q)\) removes that offset. The demo shows both.",
+               r"Feedback linearization (computed torque), which cancels the nonlinear terms so that the error follows \(\ddot e + K_d \dot e + K_p e = 0\)."),
+            h("Planning"),
+            p("The planning part is not from either course. It uses RRT-Connect (Kuffner and LaValle, 2000) with shortcut smoothing. Each link is a capsule and each obstacle is a sphere. The smoothed path is time-scaled until the joint speeds and the Newton-Euler torques stay inside the UR5e limits. When a sphere is dragged across the rest of the path, the arm plans again from where it is."),
+            h("How it works"),
+            KATEX,
+            h3("Forward kinematics"),
+            r"<div class='math'>$$T(\theta) = e^{[\mathcal{S}_1]\theta_1} e^{[\mathcal{S}_2]\theta_2} \cdots e^{[\mathcal{S}_6]\theta_6} M$$</div>",
+            p(r"The six screw axes and the home pose \(M\) come from the UR5e joint origins. The teal arrows S1 to S6 on the arm are these axes, and the meshes move by this product every frame."),
+            h3("Space Jacobian"),
+            r"<div class='math'>$$J_{si}(\theta) = \mathrm{Ad}_{e^{[\mathcal{S}_1]\theta_1}\cdots e^{[\mathcal{S}_{i-1}]\theta_{i-1}}}\,\mathcal{S}_i$$</div>",
+            p(r"Column \(i\) is the screw axis of joint \(i\) in the current pose."),
+            h3("Manipulability"),
+            r"<div class='math'>$$A = J_v J_v^{T}, \qquad \mu_3 = \sqrt{\det A}$$</div>",
+            p(r"The grey ellipsoid at the tool has axes along the eigenvectors of \(A\) and half-lengths \(\sqrt{\lambda_i}\). It flattens as the arm nears a singularity."),
+            h3("Inverse kinematics"),
+            r"<div class='math'>$$\Delta\theta = J^{T}\left(JJ^{T} + \lambda^{2} I\right)^{-1} \mathcal{V}$$</div>",
+            p("Damped least squares moves the tool toward the ring you drag. The damping keeps each step finite near a singularity."),
+            h3("Recursive Newton-Euler"),
+            r"<div class='math'>$$\mathcal{V}_i = \mathrm{Ad}_{T_{i,i-1}}\mathcal{V}_{i-1} + \mathcal{A}_i\dot\theta_i$$</div>",
+            r"<div class='math'>$$\dot{\mathcal{V}}_i = \mathrm{Ad}_{T_{i,i-1}}\dot{\mathcal{V}}_{i-1} + \mathrm{ad}_{\mathcal{V}_i}\mathcal{A}_i\dot\theta_i + \mathcal{A}_i\ddot\theta_i$$</div>",
+            r"<div class='math'>$$\mathcal{F}_i = \mathrm{Ad}^{T}_{T_{i+1,i}}\mathcal{F}_{i+1} + \mathcal{G}_i\dot{\mathcal{V}}_i - \mathrm{ad}^{T}_{\mathcal{V}_i}(\mathcal{G}_i\mathcal{V}_i), \qquad \tau_i = \mathcal{F}_i^{T}\mathcal{A}_i$$</div>",
+            p(r"The forward pass carries velocities and accelerations out to the tool, with gravity entering as \(\dot{\mathcal{V}}_0 = (0, -\mathfrak{g})\). The backward pass carries wrenches back to the base. \(\mathcal{G}_i\) holds the published mass and inertia of each link."),
+            h3("Equations of motion"),
+            r"<div class='math'>$$M(q)\ddot q + C(q,\dot q)\dot q + g(q) = \tau$$</div>",
+            p(r"The simulator solves this for \(\ddot q\) with \(M(q)\) assembled from Newton-Euler and integrates it at 1 kHz. Push the arm adds a 60 N force at the end of the forearm through \(J_s^{T}\mathcal{F}\)."),
+            h3("Controllers"),
+            r"<div class='math'>$$\tau = K_p e + K_d \dot e$$</div>",
+            r"<div class='math'>$$\tau = K_p e + K_d \dot e + g(q)$$</div>",
+            r"<div class='math'>$$\tau = M(q)(\ddot q_d + K_d\dot e + K_p e) + C(q,\dot q)\dot q + g(q)$$</div>",
+            p(r"PD, PD with gravity compensation, and computed torque, with \(e = q_d - q\). PD alone sags under gravity, and the error plot shows the offset that \(g(q)\) removes."),
+            h3("Path planning"),
+            p(r"RRT-Connect grows one tree from the start and one from the goal in joint space. Each tree extends toward random samples and tries to connect to the other. A pose is rejected if any link capsule touches a sphere. The path is shortcut, then each segment gets the quintic time scaling \(s = 10\tau^3 - 15\tau^4 + 6\tau^5\) and is lengthened until speeds and torques stay inside the UR5e limits."),
+            h("Checks"),
+            p("These run as tests with Node:"),
+            ul("Product-of-exponentials FK matches the DH FK to 1e-9 m over 500 random poses.",
+               "The space Jacobian matches finite differences.",
+               r"Newton-Euler torques match \(M(q)\ddot q + c + g\). The power \(\dot q^{T}\tau\) matches the rate of change of kinetic plus potential energy.",
+               "Damped least squares converges in 99 of 100 trials.",
+               "Every planned path is collision free when checked every 2 ms."),
+        ],
+        links=[("Demo source", "../assets/3d/ur5e/ur5e-demo.js", "local"),
+               ("UR5e description", "https://github.com/UniversalRobots/Universal_Robots_ROS2_Description")],
+    ),
+    dict(
         slug="mapping",
         title="Autonomous Mapping and Localizing Robot",
         short="Autonomous Mapping and Localizing Robot",
@@ -362,6 +490,7 @@ PROJECTS = [
         meta="RBE 3002 at WPI, spring 2025. Team project.",
         blurb="A TurtleBot3 that explores a maze it has never seen, builds a map of it with LiDAR, then uses that map to find where it is and drive to a goal.",
         tags=["ROS", "SLAM", "A*", "AMCL", "Python"],
+        demo=TB3_DEMO,
         body=[
             p("The robot is dropped into a maze with no map. It has to explore the whole thing, build a map as it goes, and then, starting from an unknown spot, work out where it is on that map and drive to a goal."),
             fig("assets/img/mapping/maze.jpg", "The final maze in simulation."),

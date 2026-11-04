@@ -32,6 +32,7 @@
       <div><dt>Links</dt><dd><div class="links top-links"><a href="https://openreview.net/forum?id=QrZdMrLP5X" class="">Paper on OpenReview</a><a href="https://neurips.cc/Conferences/2026" class="">NeurIPS 2026</a><a href="https://github.com/CAVALL-ORG/Heimdall" class="">Heimdall on GitHub</a><a href="https://www.cavall.ai/" class="">Cavall</a></div></dd></div>
     </dl>
   </header>
+  
   <div class="chapter-body">
     <aside class="toc-col"><nav class="toc" aria-label="Sections"><p>On this page</p><ol><li><a href="#how-it-works">How it works</a></li><li><a href="#benchmark">Benchmark</a></li><li><a href="#what-else-i-built-around-it">What else I built around it</a></li><li><a href="#what-i-m-working-on-now">What I'm working on now</a></li></ol></nav></aside>
     <div class="article">
@@ -63,6 +64,11 @@ setTimeout(go,2500);})();
 (function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
 if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
 f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+(function(){var ds=document.querySelectorAll('[data-demo]');if(!ds.length)return;
+function load(d){if(d.dataset.loaded)return;d.dataset.loaded='1';import(new URL(d.dataset.demo,location.href).href).catch(function(e){console.error(e);});}
+if(!('IntersectionObserver' in window)){ds.forEach(load);return;}
+var lo=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){lo.unobserve(e.target);load(e.target);}});},{rootMargin:'300px'});
+ds.forEach(function(d){lo.observe(d);});})();
 (function(){if(!('IntersectionObserver' in window))return;
 var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(!still){var els=document.querySelectorAll('main > section .wrap > *, .article > *, .stop, .entry');

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot dynamics and control (RBE 501 + 502) · Vishesh Konduru</title>
+<meta name="description" content="A live model of a Universal Robots UR5e that applies the kinematics, dynamics and control from RBE 501 and RBE 502, using the masses, inertias and joint limits Universal Robots publishes for the arm.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-head">
+  <div class="edge head-inner">
+    <a class="site-name" href="../index.html">Vishesh Konduru</a>
+    <nav class="site-nav"><a href="../index.html" aria-current=page>Work</a><a href="../journey.html">Journey</a><a href="../about.html">About</a><a href="../docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
+  </div>
+</header>
+<main id="main">
+
+<article class="wrap chapter">
+  <header class="chapter-head">
+    <p class="crumb"><a href="../index.html">Work</a> / Robot dynamics and control (RBE 501 + 502)</p>
+    <h1>Robot dynamics and control (RBE 501 + 502)</h1>
+    
+    <dl class="spec">
+      <div><dt>Context</dt><dd>Coursework applied: RBE 501 (Robot Dynamics) and RBE 502 (Robot Control) at WPI.</dd></div>
+      
+      <div><dt>Tools</dt><dd>JavaScript, three.js, Kinematics, Dynamics, Control, Motion planning</dd></div>
+      <div><dt>Links</dt><dd><div class="links top-links"><a href="../assets/3d/ur5e/ur5e-demo.js" class="local">Demo source</a><a href="https://github.com/UniversalRobots/Universal_Robots_ROS2_Description" class="">UR5e description</a></div></dd></div>
+    </dl>
+  </header>
+  <link rel="stylesheet" href="../assets/3d/ur5e/ur5e.css"><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script><div class="live" id="live-demo" data-demo="../assets/3d/ur5e/ur5e-demo.js"><h2 class="live-head" id="try-it-live">Try it live</h2><p class="live-how">Drag the ring at the tool and the arm follows. Choose Plan a path, drag the faint goal arm or the grey obstacles, then press Plan and move.</p><figure class="fig live-fig"><div data-ur5e3d></div><figcaption>UR5e, simulated live from its published masses and inertias. Teal arrows S<sub>1</sub> to S<sub>6</sub> are the joint screw axes in the current pose, and the grey ellipsoid at the tool is its velocity manipulability ellipsoid. Torques come from recursive Newton-Euler. The arm moves by integrating its forward dynamics at 1 kHz under the selected controller.</figcaption></figure></div>
+  <div class="chapter-body">
+    <aside class="toc-col"><nav class="toc" aria-label="Sections"><p>On this page</p><ol><li><a href="#from-rbe-501">From RBE 501</a></li><li><a href="#from-rbe-502">From RBE 502</a></li><li><a href="#planning">Planning</a></li><li><a href="#how-it-works">How it works</a></li><li><a href="#checks">Checks</a></li></ol></nav></aside>
+    <div class="article">
+    <details class="toc-m"><summary>On this page</summary><ol><li><a href="#from-rbe-501">From RBE 501</a></li><li><a href="#from-rbe-502">From RBE 502</a></li><li><a href="#planning">Planning</a></li><li><a href="#how-it-works">How it works</a></li><li><a href="#checks">Checks</a></li></ol></details>
+    <p>A live model of a Universal Robots UR5e that applies the kinematics, dynamics and control from RBE 501 (Robot Dynamics) and RBE 502 (Robot Control) at WPI. It uses the masses, inertias and joint limits that Universal Robots publishes for the arm.</p><p>The arm is built from the official UR5e description (Universal Robots, BSD-3-Clause): its joint origins, link masses, centres of mass, inertia tensors, joint torque limits and visual meshes. The code computes everything from those numbers while the page is open. Nothing is prerecorded.</p><h2 id="from-rbe-501">From RBE 501</h2><ul><li>Forward kinematics by the product of exponentials, checked in a test against Universal Robots' published DH table.</li><li>The space Jacobian built from the screw axes, and the manipulability ellipsoid and measures from its eigenvalues.</li><li>Inverse kinematics by damped least squares, the method from Lecture 8.</li><li>Inverse dynamics by the recursive Newton-Euler algorithm (Lecture 18), giving the joint torques.</li><li>Forward dynamics, solving for joint accelerations with the inverse of the mass matrix (Lecture 20). External forces enter through \(\tau = J^{T} F\) (Lecture 12).</li><li>Quintic time scaling for trajectories (Lecture 19).</li></ul><h2 id="from-rbe-502">From RBE 502</h2><ul><li>The manipulator equation \(M(q)\ddot q + C(q,\dot q)\dot q + g(q) = \tau\).</li><li>PD control, and PD control with gravity compensation. The lectures show that PD alone settles away from the target under gravity and that adding \(g(q)\) removes that offset. The demo shows both.</li><li>Feedback linearization (computed torque), which cancels the nonlinear terms so that the error follows \(\ddot e + K_d \dot e + K_p e = 0\).</li></ul><h2 id="planning">Planning</h2><p>The planning part is not from either course. It uses RRT-Connect (Kuffner and LaValle, 2000) with shortcut smoothing. Each link is a capsule and each obstacle is a sphere. The smoothed path is time-scaled until the joint speeds and the Newton-Euler torques stay inside the UR5e limits. When a sphere is dragged across the rest of the path, the arm plans again from where it is.</p><h2 id="how-it-works">How it works</h2><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.querySelector(&#39;.article&#39;),{delimiters:[{left:&#39;$$&#39;,right:&#39;$$&#39;,display:true},{left:&#39;\\(&#39;,right:&#39;\\)&#39;,display:false}]})"></script><h3>Forward kinematics</h3><div class='math'>$$T(\theta) = e^{[\mathcal{S}_1]\theta_1} e^{[\mathcal{S}_2]\theta_2} \cdots e^{[\mathcal{S}_6]\theta_6} M$$</div><p>The six screw axes and the home pose \(M\) come from the UR5e joint origins. The teal arrows S1 to S6 on the arm are these axes, and the meshes move by this product every frame.</p><h3>Space Jacobian</h3><div class='math'>$$J_{si}(\theta) = \mathrm{Ad}_{e^{[\mathcal{S}_1]\theta_1}\cdots e^{[\mathcal{S}_{i-1}]\theta_{i-1}}}\,\mathcal{S}_i$$</div><p>Column \(i\) is the screw axis of joint \(i\) in the current pose.</p><h3>Manipulability</h3><div class='math'>$$A = J_v J_v^{T}, \qquad \mu_3 = \sqrt{\det A}$$</div><p>The grey ellipsoid at the tool has axes along the eigenvectors of \(A\) and half-lengths \(\sqrt{\lambda_i}\). It flattens as the arm nears a singularity.</p><h3>Inverse kinematics</h3><div class='math'>$$\Delta\theta = J^{T}\left(JJ^{T} + \lambda^{2} I\right)^{-1} \mathcal{V}$$</div><p>Damped least squares moves the tool toward the ring you drag. The damping keeps each step finite near a singularity.</p><h3>Recursive Newton-Euler</h3><div class='math'>$$\mathcal{V}_i = \mathrm{Ad}_{T_{i,i-1}}\mathcal{V}_{i-1} + \mathcal{A}_i\dot\theta_i$$</div><div class='math'>$$\dot{\mathcal{V}}_i = \mathrm{Ad}_{T_{i,i-1}}\dot{\mathcal{V}}_{i-1} + \mathrm{ad}_{\mathcal{V}_i}\mathcal{A}_i\dot\theta_i + \mathcal{A}_i\ddot\theta_i$$</div><div class='math'>$$\mathcal{F}_i = \mathrm{Ad}^{T}_{T_{i+1,i}}\mathcal{F}_{i+1} + \mathcal{G}_i\dot{\mathcal{V}}_i - \mathrm{ad}^{T}_{\mathcal{V}_i}(\mathcal{G}_i\mathcal{V}_i), \qquad \tau_i = \mathcal{F}_i^{T}\mathcal{A}_i$$</div><p>The forward pass carries velocities and accelerations out to the tool, with gravity entering as \(\dot{\mathcal{V}}_0 = (0, -\mathfrak{g})\). The backward pass carries wrenches back to the base. \(\mathcal{G}_i\) holds the published mass and inertia of each link.</p><h3>Equations of motion</h3><div class='math'>$$M(q)\ddot q + C(q,\dot q)\dot q + g(q) = \tau$$</div><p>The simulator solves this for \(\ddot q\) with \(M(q)\) assembled from Newton-Euler and integrates it at 1 kHz. Push the arm adds a 60 N force at the end of the forearm through \(J_s^{T}\mathcal{F}\).</p><h3>Controllers</h3><div class='math'>$$\tau = K_p e + K_d \dot e$$</div><div class='math'>$$\tau = K_p e + K_d \dot e + g(q)$$</div><div class='math'>$$\tau = M(q)(\ddot q_d + K_d\dot e + K_p e) + C(q,\dot q)\dot q + g(q)$$</div><p>PD, PD with gravity compensation, and computed torque, with \(e = q_d - q\). PD alone sags under gravity, and the error plot shows the offset that \(g(q)\) removes.</p><h3>Path planning</h3><p>RRT-Connect grows one tree from the start and one from the goal in joint space. Each tree extends toward random samples and tries to connect to the other. A pose is rejected if any link capsule touches a sphere. The path is shortcut, then each segment gets the quintic time scaling \(s = 10\tau^3 - 15\tau^4 + 6\tau^5\) and is lengthened until speeds and torques stay inside the UR5e limits.</p><h2 id="checks">Checks</h2><p>These run as tests with Node:</p><ul><li>Product-of-exponentials FK matches the DH FK to 1e-9 m over 500 random poses.</li><li>The space Jacobian matches finite differences.</li><li>Newton-Euler torques match \(M(q)\ddot q + c + g\). The power \(\dot q^{T}\tau\) matches the rate of change of kinetic plus potential energy.</li><li>Damped least squares converges in 99 of 100 trials.</li><li>Every planned path is collision free when checked every 2 ms.</li></ul>
+    </div>
+  </div>
+</article>
+<section><div class="wrap pager">
+  <a href="rbe3001.html"><span>Previous</span>&larr; RBE-3001 Final Project</a>
+  <a class="back" href="../index.html">Back to Work</a>
+  <a href="mapping.html"><span>Next</span>Autonomous Mapping and Localizing Robot &rarr;</a>
+</div></section>
+
+</main>
+<footer class="site-foot">
+  <div class="wrap">
+    <span>Vishesh Konduru</span>
+    <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
+  </div>
+</footer>
+<script>
+(function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
+function go(){if(!done){done=true;hero.classList.add('go');}}
+if(!v){go();return;}
+function tick(){if(done)return;if(v.currentTime>=0.45)go();else requestAnimationFrame(tick);}
+v.addEventListener('playing',tick);if(!v.paused)tick();
+setTimeout(go,2500);})();
+(function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
+if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
+f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+(function(){var ds=document.querySelectorAll('[data-demo]');if(!ds.length)return;
+function load(d){if(d.dataset.loaded)return;d.dataset.loaded='1';import(new URL(d.dataset.demo,location.href).href).catch(function(e){console.error(e);});}
+if(!('IntersectionObserver' in window)){ds.forEach(load);return;}
+var lo=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){lo.unobserve(e.target);load(e.target);}});},{rootMargin:'300px'});
+ds.forEach(function(d){lo.observe(d);});})();
+(function(){if(!('IntersectionObserver' in window))return;
+var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(!still){var els=document.querySelectorAll('main > section .wrap > *, .article > *, .stop, .entry');
+var ro=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});
+els.forEach(function(el){if(el.getBoundingClientRect().top>innerHeight){el.classList.add('rv');ro.observe(el);}});}
+var vo=new IntersectionObserver(function(es){es.forEach(function(e){var v=e.target;if(e.isIntersecting){if(!still||v.closest('.hero')){var p=v.play();if(p&&p.catch)p.catch(function(){});}}else v.pause();});},{rootMargin:'200px'});
+document.querySelectorAll('video[autoplay]').forEach(function(v){if(still&&!v.closest('.hero')){v.removeAttribute('autoplay');v.pause();v.controls=true;}vo.observe(v);});
+document.querySelectorAll('.yt').forEach(function(b){b.addEventListener('click',function(){var f=document.createElement('iframe');f.className='short';f.src='https://www.youtube-nocookie.com/embed/'+b.dataset.id+'?autoplay=1';f.title=b.dataset.title;f.allow='autoplay; encrypted-media; picture-in-picture';f.allowFullscreen=true;b.replaceWith(f);f.focus();});});
+var toc=document.querySelectorAll('.toc a');if(!toc.length)return;var map={};toc.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+var so=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){toc.forEach(function(a){a.removeAttribute('aria-current');});map[e.target.id].setAttribute('aria-current','true');}});},{rootMargin:'0px 0px -70% 0px'});
+document.querySelectorAll('.toc-m a').forEach(function(a){a.addEventListener('click',function(){a.closest('details').open=false;});});
+document.querySelectorAll('.article h2[id]').forEach(function(h){so.observe(h);});})();
+</script>
+</body>
+</html>
