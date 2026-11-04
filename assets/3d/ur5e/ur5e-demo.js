@@ -8,6 +8,7 @@ import * as P from './planner.js';
 import { DT, CONTROLLERS, controlTorqueParts, rk4Step, Q_NOMINAL } from './sim.js';
 import { TAU_MAX, QD_MAX } from './ur5e-model.js';
 import { css, timePlot, torqueBars, quinticPlot, JOINT_COLORS_LIGHT, JOINT_COLORS_DARK } from './plots.js';
+import { createShell, h as sh } from '../demo-shell.js';
 
 const BASE = new URL('.', import.meta.url).href;
 const DEG = 180 / Math.PI;
@@ -32,45 +33,77 @@ export function mount(root) {
   root.classList.add('u5');
   const uid = 'u5' + Math.random().toString(36).slice(2, 7);
 
-  // ---------- DOM ----------
-  const view = h('div', { class: 'u5-view', tabindex: '0', role: 'application' });
+  // ---------- DOM (shared demo shell) ----------
+  const shell = createShell(root, {
+    id: 'ur5e', label: 'UR5e arm',
+    scenes: [{ id: 'move', label: 'Move the tool' }, { id: 'plan', label: 'Plan around obstacles' }], scene: root.dataset.mode === 'plan' ? 'plan' : 'move',
+    onScene: (id) => { setMode(id); shell.startCoach(); },
+  });
+  const view = shell.view;
   const overlay = h('div', { class: 'u5-overlay', 'aria-hidden': 'true' });
   const loading = h('p', { class: 'u5-loading', text: 'Loading the UR5e model' });
   view.append(overlay, loading);
-
-  const bMove = h('button', { type: 'button', 'aria-pressed': 'true', text: 'Drag the tool' });
-  const bPlan = h('button', { type: 'button', 'aria-pressed': 'false', text: 'Plan a path' });
-  const bGo = h('button', { type: 'button', class: 'u5-go', text: 'Plan and move', hidden: true });
-  const sel = h('select', { id: uid + 'c' });
+  const sel = h('select', { id: uid + 'c', 'aria-label': 'Controller' });
   for (const [k, v] of Object.entries(CONTROLLERS)) sel.append(h('option', { value: k, text: v }));
   sel.value = 'ct';
-  const bPush = h('button', { type: 'button', text: 'Push the arm' });
-  const bFrames = h('button', { type: 'button', 'aria-pressed': 'false', text: 'Show frames' });
-  const sep = () => h('span', { class: 'u5-sep', 'aria-hidden': 'true' });
-  const line = h('div', { class: 'u5-line' }, bMove, bPlan, bGo, sep(),
-    h('label', { for: uid + 'c', text: 'Controller' }), sel, sep(), bPush, bFrames);
-  const status = h('p', { class: 'u5-status', role: 'status', 'aria-live': 'polite' });
+  const ctl = h('label', { class: 'u5-ctl', for: uid + 'c', text: 'Controller' });
+  let bGo = null, bFrames = null;
+  function buildFlow(m) {
+    const more = [{ label: 'Push the arm', id: 'push', onClick: push }, { label: 'Show frames', id: 'frames', pressed: st.frames, onClick: frames }];
+    const b = m === 'move'
+      ? shell.setFlow([{ step: 'Drag the ring at the tool', id: 'drag' }], more)
+      : shell.setFlow([{ step: 'Drag the goal or an obstacle', id: 'goal' }, { primary: 'Plan and move', id: 'go', onClick: () => { shell.done('plan'); startPlan(); } }], more);
+    bGo = b.go || null; bFrames = b.frames;
+    shell.flow.querySelector('.ds-more').prepend(ctl, sel);
+    shell.focusGroup(m === 'move' ? ['kin', 'ctrl', 'dyn'] : ['plan', 'ctrl', 'dyn']);
+  }
+  const status = shell.status;
 
-  const plotBox = (title, cls = '') => {
+  const plotBox = (title, cls = '', where = shell.panels) => {
     const c = h('canvas', { class: 'u5-plot ' + cls, 'aria-hidden': 'true' });
     const cap = h('p', { class: 'u5-cap' });
-    const fig = h('figure', { class: 'u5-fig' }, h('p', { class: 'u5-title', html: title }), c, cap);
+    const fig = h('figure', { class: 'u5-fig' }, h('h3', { class: 'ds-ro-h', html: title }), c, cap);
+    where.append(fig);
     return { c, cap, fig };
   };
+  // Key plots in the column beside the view; the rest under "More" below it.
   const pTau = plotBox('Joint torque <i>τ</i><sub>i</sub> against the UR5e limit (N&nbsp;m)', 'u5-tall');
   const pErr = plotBox('Tracking error ‖<i>q</i><sub>d</sub> − <i>q</i>‖ (deg)');
   const pMu = plotBox('Manipulability <i>μ</i><sub>3</sub> = √det(<i>J</i><sub>v</sub><i>J</i><sub>v</sub><sup>T</sup>)');
-  const pQ = plotBox('Joint positions <i>q</i> (solid) and reference <i>q</i><sub>d</sub> (dashed), deg');
-  const pQd = plotBox('Joint velocities <i>q̇</i> (deg/s), limit ±180');
-  const pS = plotBox('Quintic time scaling of the current segment');
-  const plots = h('div', { class: 'u5-plots' }, pTau.fig, pErr.fig, pMu.fig, pQ.fig, pQd.fig, pS.fig);
+  const moreBody = h('div', { class: 'u5-plots' });
+  const moreBox = h('details', { class: 'ds-more-box' }, h('summary', { text: 'More' }), moreBody);
+  shell.below.append(moreBox);
+  const pQ = plotBox('Joint positions <i>q</i> (solid) and reference <i>q</i><sub>d</sub> (dashed), deg', '', moreBody);
+  const pQd = plotBox('Joint velocities <i>q̇</i> (deg/s), limit ±180', '', moreBody);
+  const pS = plotBox('Quintic time scaling of the current segment', '', moreBody);
 
   const mT = h('table', { class: 'u5-mat' }), mJ = h('table', { class: 'u5-mat' });
   const math = h('div', { class: 'u5-math' },
     h('div', {}, h('p', { class: 'u5-title', html: 'Forward kinematics, <i>T</i>(<i>θ</i>) = <i>e</i><sup>[<i>S</i><sub>1</sub>]<i>θ</i><sub>1</sub></sup> ⋯ <i>e</i><sup>[<i>S</i><sub>6</sub>]<i>θ</i><sub>6</sub></sup><i>M</i>, metres' }), mT),
     h('div', {}, h('p', { class: 'u5-title', html: 'Space Jacobian <i>J</i><sub>s</sub>(<i>θ</i>); column <i>i</i> is the screw axis <i>S</i><sub>i</sub> in the current pose' }), mJ));
   const simNote = h('p', { class: 'u5-cap' });
-  root.append(view, line, status, plots, math, simNote);
+  moreBox.append(math, simNote);
+  shell.readout([
+    { id: 'kin', title: 'Kinematics', items: [
+      { id: 'mu', label: 'Manipulability μ3', desc: 'Volume of the velocity ellipsoid at the tool; zero at a singularity.' },
+      { id: 'cond', label: 'σmin / σmax of Js', unit: '%', desc: 'Ratio of the smallest to largest singular value of the space Jacobian.' },
+      { id: 'ike', label: 'IK error', unit: 'mm', desc: 'Distance from the dragged target to the tool after damped least squares.' }] },
+    { id: 'dyn', title: 'Dynamics', items: [
+      { id: 'tau', label: 'Peak torque', unit: '% of limit', desc: 'Largest joint torque from recursive Newton-Euler, as a share of that joint\u2019s limit.' },
+      { id: 'rate', label: 'Simulation speed', unit: '× real time', desc: 'Fourth-order Runge-Kutta at 1 kHz.' }] },
+    { id: 'ctrl', title: 'Control', items: [
+      { id: 'ctl', label: 'Controller' },
+      { id: 'err', label: 'Tracking error', unit: '°', desc: 'Joint-space distance between the reference and the arm.' }] },
+    { id: 'plan', title: 'Planner', items: [
+      { id: 'nodes', label: 'RRT-Connect nodes', desc: 'Joint-space nodes in both trees when they met.' },
+      { id: 'wp', label: 'Waypoints', desc: 'Before and after shortcutting.' },
+      { id: 'dur', label: 'Trajectory time', unit: 's', desc: 'Quintic time scaling, stretched to fit speed and torque limits.' }] },
+  ]);
+  shell.coach('move', [{ key: 'drag', text: 'Runs in your browser. Drag the ring at the tool.', target: () => view, at: [0.5, 0.5] }]);
+  shell.coach('plan', [
+    { key: 'goal', text: 'Runs in your browser. Drag the faint goal arm or a grey obstacle.', target: () => view, at: [0.5, 0.5] },
+    { key: 'plan', text: 'Press Plan and move.', target: () => bGo },
+  ]);
 
   // ---------- state ----------
   const kin0 = R.fk(Q_NOMINAL);
@@ -177,8 +210,8 @@ export function mount(root) {
   const labels = {};
   const label = (key, text, cls = '') => (labels[key] = overlay.appendChild(h('span', { class: 'u5-lab ' + cls, text })));
   for (let i = 1; i <= 6; i++) label('S' + i, '', 'u5-lab-s').innerHTML = `S<sub>${i}</sub>`;
-  label('tgt', 'Drag to move the tool', 'u5-lab-hint');
-  label('goal', 'Goal: drag to move', 'u5-lab-hint');
+  label('tgt', 'Drag', 'u5-lab-hint');
+  label('goal', 'Goal', 'u5-lab-hint');
   label('obs0', 'Obstacle'); label('obs1', 'Obstacle');
   label('push', `${PUSH_N} N`);
   label('fs', '{s}'); label('fb', '{b}'); label('fm', 'M');
@@ -219,7 +252,7 @@ export function mount(root) {
     const q = world.worldToLocal(p), v = [q.x, q.y, Math.max(0.03, q.z)];
     if (drag === 'tgt') setTarget(v); else if (drag === 'goal') setGoal(v); else moveObstacle(drag, v);
   });
-  const endDrag = () => { if (drag != null) { if (drag === 'goal') goalDone(); drag = null; orbit.enabled = true; view.style.cursor = ''; } };
+  const endDrag = () => { if (drag != null) { shell.done(drag === 'tgt' ? 'drag' : 'goal'); if (drag === 'goal') goalDone(); drag = null; orbit.enabled = true; view.style.cursor = ''; } };
   renderer.domElement.addEventListener('pointerup', endDrag);
   renderer.domElement.addEventListener('pointercancel', endDrag);
   view.addEventListener('keydown', ev => {
@@ -242,14 +275,14 @@ export function mount(root) {
   }
   function goalDone() {
     const T = R.fk(st.goalQ).T; st.goalTip = [T[0][3], T[1][3], T[2][3]];
-    if (!st.goalOk) say('The goal point is out of reach for this tool orientation, so the goal pose is the closest one damped least squares found.');
-    else if (R.inCollision(st.goalQ, st.obstacles)) say('The goal pose touches an obstacle. Move the goal or the obstacle.');
-    else say('Goal set by inverse kinematics (the faint arm). Press Plan and move.');
+    if (!st.goalOk) say('Goal out of reach for this tool orientation; closest pose used');
+    else if (R.inCollision(st.goalQ, st.obstacles)) say('Goal pose touches an obstacle');
+    else say('Goal pose set by inverse kinematics');
   }
   function moveObstacle(i, v) {
     st.obstacles[i].c = v;
-    if (st.phase === 'planning') startPlan('An obstacle moved. Planning again.');
-    else if (st.phase === 'moving' && !P.pathFree(P.remainingPath(st.traj, st.tTraj), st.obstacles)) startPlan('An obstacle blocked the rest of the path. Holding and planning again from here.');
+    if (st.phase === 'planning') startPlan('Obstacle moved, planning again');
+    else if (st.phase === 'moving' && !P.pathFree(P.remainingPath(st.traj, st.tTraj), st.obstacles)) startPlan('Path blocked, holding and planning again');
   }
 
   // ---------- planning worker ----------
@@ -258,14 +291,14 @@ export function mount(root) {
     if (worker) worker.terminate();
     worker = new Worker(new URL('./plan-worker.js', import.meta.url), { type: 'module' });
     worker.onmessage = e => onPlan(e.data);
-    worker.onerror = () => { st.phase = 'failed'; say('The planner stopped with an error. The arm is holding.'); };
+    worker.onerror = () => { st.phase = 'failed'; say('Planner error, arm holding'); };
   }
   function clearTrees() { for (const t of [treeA, treeB]) { t.userData.n = 0; t.geometry.setDrawRange(0, 0); } rawLine.visible = pathLine.visible = false; }
   function startPlan(why) {
     st.hold = [...st.q]; st.traj = null; st.phase = 'planning'; st.planId++;
     clearTrees(); newWorker();
     st.planT0 = performance.now();
-    say(why || 'Growing two RRT-Connect trees, one from the current pose and one from the goal.');
+    say(why || 'RRT-Connect: growing trees from the start and goal poses');
     worker.postMessage({ id: st.planId, qs: [...st.q], qg: [...st.goalQ], spheres: st.obstacles.map(o => ({ c: [...o.c], r: o.r })), budgetMs: PLAN_BUDGET_MS });
   }
   function appendTree(t, arr) {
@@ -282,14 +315,12 @@ export function mount(root) {
     if (m.id !== st.planId) return;
     if (m.type === 'progress') {
       appendTree(treeA, m.a); appendTree(treeB, m.b);
-      say(`Growing two RRT-Connect trees: ${m.nodes} joint-space nodes so far (${(m.ms / 1000).toFixed(1)} s of ${PLAN_BUDGET_MS / 1000} s). Each line is the tool tip moving between two nodes.`);
+      say(`RRT-Connect: ${m.nodes} nodes, ${(m.ms / 1000).toFixed(1)} s`);
       return;
     }
     if (m.type === 'fail') {
       st.phase = 'failed';
-      say(m.reason === 'start' ? 'The arm is touching an obstacle now, so there is no collision-free start. Move the obstacle away.'
-        : m.reason === 'goal' ? 'The goal pose touches an obstacle. Move the goal or the obstacle, then press Plan and move.'
-        : `No collision-free path found in ${PLAN_BUDGET_MS / 1000} s (${m.nodes} nodes). The arm is holding. Move an obstacle or the goal and try again.`);
+      say(m.reason === 'start' ? 'Start pose in collision' : m.reason === 'goal' ? 'Goal pose in collision' : `No path found in ${PLAN_BUDGET_MS / 1000} s, ${m.nodes} nodes`);
       return;
     }
     tipLine(rawLine, densify(m.raw)); tipLine(pathLine, densify(m.path));
@@ -297,7 +328,8 @@ export function mount(root) {
     const peak = peakTorque(m.traj);
     st.phase = 'found'; st.pendingTraj = m.traj;
     st.showUntil = performance.now() + (reduceMotion ? 400 : 1600);
-    say(`Trees met after ${m.nodes} nodes. Shortcutting cut the path from ${m.raw.length} to ${m.path.length} waypoints (dashed: before, solid: after). Time scaling: ${m.traj.duration.toFixed(1)} s, peak torque ${Math.round(peak * 100)}% of the limit.`);
+    say(`Path found: ${m.nodes} nodes, ${m.raw.length} to ${m.path.length} waypoints after shortcutting`);
+    shell.set('nodes', m.nodes); shell.set('wp', `${m.raw.length} to ${m.path.length}`); shell.set('dur', m.traj.duration.toFixed(1));
   }
   function peakTorque(traj) {
     let w = 0;
@@ -308,7 +340,7 @@ export function mount(root) {
   // ---------- modes and controls ----------
   function setMode(m) {
     st.mode = m;
-    bMove.setAttribute('aria-pressed', m === 'move'); bPlan.setAttribute('aria-pressed', m === 'plan'); bGo.hidden = m !== 'plan';
+    buildFlow(m);
     tgt.visible = m === 'move'; goalH.visible = m === 'plan'; ghost.forEach(g => (g.visible = m === 'plan'));
     obsMeshes.forEach(o => (o.visible = m === 'plan'));
     clearTrees(); if (worker) { worker.terminate(); worker = null; }
@@ -318,26 +350,23 @@ export function mount(root) {
       st.target = [k[0][3], k[1][3], k[2][3]]; st.targetR = k.slice(0, 3).map(r => r.slice(0, 3));
       st.qik = [...st.q]; st.ref = { q: [...st.q], qd: [0,0,0,0,0,0], qdd: [0,0,0,0,0,0] };
       view.setAttribute('aria-label', 'UR5e arm. Drag the ring handle to move the tool. Arrow keys move it across the table; Page Up and Page Down move it up and down.');
-      say('Drag the ring at the tool. Inverse kinematics finds the joint angles and the controller drives the simulated arm there.');
+      say(`Controller: ${CONTROLLERS[st.ctrl]}`);
     } else {
       view.setAttribute('aria-label', 'UR5e arm with a goal pose and two obstacles. Arrow keys and Page Up or Page Down move the goal; Enter plans and moves.');
-      say('The faint arm is the goal. Drag its ring or the grey obstacles, then press Plan and move.');
+      say('Goal pose shown as the faint arm');
     }
   }
-  bMove.addEventListener('click', () => setMode('move'));
-  bPlan.addEventListener('click', () => setMode('plan'));
-  bGo.addEventListener('click', () => startPlan());
-  sel.addEventListener('change', () => { st.ctrl = sel.value; st.marks.push({ t: st.simTime, label: CONTROLLERS[sel.value] }); });
-  bPush.addEventListener('click', () => {
+  sel.addEventListener('change', () => { st.ctrl = sel.value; st.marks.push({ t: st.simTime, label: CONTROLLERS[sel.value] }); say(`Controller: ${CONTROLLERS[st.ctrl]}`); });
+  function push() {
     const d = new THREE.Vector3(); cam.getWorldDirection(d); d.cross(cam.up).normalize();
     const o = world.worldToLocal(new THREE.Vector3()), e = world.worldToLocal(d.clone());
     const f = [e.x - o.x, e.y - o.y, 0], n = Math.hypot(f[0], f[1]) || 1;
     st.pushF = f.map(x => PUSH_N * x / n); st.push = PUSH_S; st.pushShow = PUSH_S + 0.4;
-    say(`A ${PUSH_N} N push on the end of the forearm for ${PUSH_S} s. It enters the dynamics as τ = J_sᵀF through joints 1 to 3. Watch the error and torque plots.`);
-  });
-  bFrames.addEventListener('click', () => { st.frames = !st.frames; bFrames.setAttribute('aria-pressed', st.frames); [fS, fB, fM].forEach(f => (f.visible = st.frames)); });
+    say(`Push: ${PUSH_N} N for ${PUSH_S} s at the end of the forearm`);
+  }
+  function frames() { st.frames = !st.frames; bFrames && bFrames.setAttribute('aria-pressed', String(st.frames)); [fS, fB, fM].forEach(f => (f.visible = st.frames)); }
   let lastSaid = '';
-  function say(s) { if (s !== lastSaid) { status.textContent = lastSaid = s; } }
+  function say(s) { if (s !== lastSaid) { lastSaid = s; shell.say(s); } }
 
   // ---------- reference ----------
   const Z6 = [0,0,0,0,0,0];
@@ -349,7 +378,7 @@ export function mount(root) {
   }
   function beginMove() {
     st.traj = st.pendingTraj; st.tTraj = 0; st.phase = 'moving'; treeA.geometry.setDrawRange(0, 0); treeB.geometry.setDrawRange(0, 0);
-    say(`Moving along the shortcut path with quintic time scaling, ${st.traj.duration.toFixed(1)} s, tracked by the ${CONTROLLERS[st.ctrl]} controller.`);
+    say(`Moving: ${st.traj.duration.toFixed(1)} s, quintic time scaling, ${CONTROLLERS[st.ctrl]}`);
   }
   function referencePlan(dt) {
     if (st.phase === 'moving') {
@@ -357,7 +386,7 @@ export function mount(root) {
       st.ref = P.sampleTraj(st.traj, st.tTraj);
       if (st.tTraj > st.traj.duration + 0.5) {
         st.phase = 'arrived'; st.hold = [...st.ref.q]; st.traj = null;
-        say('Arrived at the goal. Drag the goal somewhere else, or move an obstacle, and press Plan and move again.');
+        say('Arrived at the goal');
       }
       return;
     }
@@ -464,9 +493,9 @@ export function mount(root) {
     place('fs', [0, 0, 0.02], st.frames, 8, 4); place('fb', p, st.frames, -30, 8);
     place('fm', [R.M_tool[0][3], R.M_tool[1][3], R.M_tool[2][3]], st.frames, 8, 8);
     if (st.mode === 'move' && drag === 'tgt') {
-      if (man.invCond < 0.01) say(`Near a singularity: the smallest singular value of J_s is ${(man.invCond * 100).toFixed(2)}% of the largest, and the ellipsoid flattens.`);
-      else if (st.ik && st.ik.eV > 0.005) say(`The target is ${(st.ik.eV * 1000).toFixed(0)} mm from where the tool can reach with this orientation; damped least squares settles at the closest pose.`);
-      else say('Inverse kinematics by damped least squares, 100 times per second while you drag.');
+      if (man.invCond < 0.01) say(`Near a singularity: σmin/σmax ${(man.invCond * 100).toFixed(2)}%`);
+      else if (st.ik && st.ik.eV > 0.005) say(`Damped least squares IK: ${(st.ik.eV * 1000).toFixed(0)} mm from the target`);
+      else say('Damped least squares IK at 100 Hz');
     }
     orbit.update();
     renderer.render(scene, cam);
@@ -480,11 +509,12 @@ export function mount(root) {
     if (pr) torqueBars(pTau.c, root, pr.tau.map((t, i) => ({ name: `τ${i + 1}`, limit: TAU_MAX[i], total: t, parts: [{ v: pr.grav[i] }, { v: pr.ff[i] }, { v: pr.fb[i] }] })), pc);
     pTau.cap.innerHTML = `Black tick: applied torque. Bars, top to bottom: <span style="color:${pc[0]}">gravity term <i>g</i>(<i>q</i>)</span>, <span style="color:${pc[1]}">model feedforward <i>M</i><i>q̈</i><sub>d</sub> + <i>C</i><i>q̇</i></span>, <span style="color:${pc[2]}">feedback on the error</span>.${pr && pr.saturated ? ' The command is clipped at the limit right now.' : ''}`;
     timePlot(pErr.c, root, { series: [{ t: H.t, y: H.e, color: css(root, '--ink', '#16171a') }], marks: st.marks, tNow, zero: true });
-    pErr.cap.textContent = 'Dotted lines mark a change of controller. PD alone leaves a steady offset under gravity; gravity compensation removes it.';
+    pErr.cap.textContent = 'Dotted line: controller changed.';
     timePlot(pMu.c, root, { series: [{ t: H.t, y: H.mu, color: css(root, '--mark', '#0f8b8d') }], tNow, zero: true, yLabel: 'm³/s³ per (rad/s)³' });
-    pMu.cap.textContent = `Now ${st.mu != null ? st.mu.toFixed(4) : ''}. It drops toward zero as the arm nears a singularity, where the grey ellipsoid at the tool flattens.`;
+    pMu.cap.textContent = `Now ${st.mu != null ? st.mu.toFixed(4) : ''}; zero at a singularity.`;
+    if (!moreBox.open) return;
     timePlot(pQ.c, root, { series: [...H.q.map((y, i) => ({ t: H.t, y, color: JC[i], label: String(i + 1) })), ...H.qr.map((y, i) => ({ t: H.t, y, color: JC[i], dash: [4, 3], width: 1 }))], tNow });
-    pQ.cap.textContent = 'Numbers at the right are joint numbers.';
+    pQ.cap.textContent = 'Labels at the right: joint numbers.';
     timePlot(pQd.c, root, { series: H.qd.map((y, i) => ({ t: H.t, y, color: JC[i], label: String(i + 1) })), tNow, zero: true });
     pQd.cap.textContent = '';
     const show = st.mode === 'plan' && (st.phase === 'moving' || st.phase === 'found' || st.phase === 'arrived');
@@ -493,7 +523,7 @@ export function mount(root) {
       let u = null, k = 0, n = 0;
       if (st.phase === 'moving') { const segs = st.traj.segs; n = segs.length; k = segs.findIndex(s => st.tTraj <= s.t0 + s.T); if (k < 0) k = n - 1; u = Math.min(1, Math.max(0, (st.tTraj - segs[k].t0) / segs[k].T)); }
       quinticPlot(pS.c, root, u, css(root, '--mark', '#0f8b8d'));
-      pS.cap.innerHTML = `<i>s</i> = 10<i>τ</i>³ − 15<i>τ</i>⁴ + 6<i>τ</i>⁵ on each path segment${n ? `; segment ${k + 1} of ${n}, ${st.traj.segs[k].T.toFixed(2)} s long` : ''}. Each segment is stretched until speeds and Newton-Euler torques fit the UR5e limits.`;
+      pS.cap.innerHTML = `<i>s</i> = 10<i>τ</i>³ − 15<i>τ</i>⁴ + 6<i>τ</i>⁵ on each path segment${n ? `; segment ${k + 1} of ${n}, ${st.traj.segs[k].T.toFixed(2)} s long` : ''}.`;
     }
   }
 
@@ -506,11 +536,16 @@ export function mount(root) {
     if (!st.kin || !st.man) return;
     mT.innerHTML = matrixHTML(st.kin.T, rowsT, null, 3);
     mJ.innerHTML = matrixHTML(st.man.Js, rowsJ, [1, 2, 3, 4, 5, 6].map(i => `<i>S</i><sub>${i}</sub>`), 3);
+    shell.set('mu', st.mu != null ? st.mu.toFixed(4) : '–'); shell.set('cond', (st.man.invCond * 100).toFixed(1));
+    shell.set('ike', st.ik ? (st.ik.eV * 1000).toFixed(1) : '–'); shell.set('ctl', CONTROLLERS[st.ctrl]); shell.set('rate', st.rate.toFixed(2));
+    const H = st.hist; shell.set('err', H.e.length ? H.e[H.e.length - 1].toFixed(2) : '–');
+    if (st.parts) shell.set('tau', Math.round(100 * Math.max(...st.parts.tau.map((t, i) => Math.abs(t) / TAU_MAX[i]))));
     simNote.textContent = `Simulation: fourth-order Runge-Kutta at 1 kHz with the full UR5e dynamics, ${st.rate > 0.95 ? 'in real time' : `at ${st.rate.toFixed(2)} times real time because this device is busy`}.`;
   }
 
   root.ur5eState = st;   // for inspection from the console and the screenshot script
-  setMode(root.dataset.mode === 'plan' ? 'plan' : 'move');
+  setMode(shell.scene);
+  shell.startCoach();
   requestAnimationFrame(frame);
 }
 

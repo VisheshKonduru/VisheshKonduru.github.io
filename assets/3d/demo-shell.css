@@ -83,3 +83,11 @@
 .ds-coach-count { color: var(--ds-ink2); }
 .ds .ds-coach-skip { margin-right: -12px; color: var(--ds-ink2); }
 .ds-coach-target { outline: 2px solid var(--mark, #0f8b8d) !important; outline-offset: 2px; }
+.ds-more button[aria-pressed="true"] { color: var(--ds-ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.ds-more label { padding-left: 12px; color: var(--ds-ink2); }
+/* "More" disclosure under the view (extra plots and matrices) */
+.ds-more-box summary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; list-style: none; font-weight: 500; }
+.ds-more-box summary::-webkit-details-marker { display: none; }
+.ds-more-box summary::before { content: ""; width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform var(--ds-t) var(--ds-ease); }
+.ds-more-box[open] summary::before { transform: rotate(45deg); }
+.ds-more select { width: auto; flex: none; }
