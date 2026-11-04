@@ -87,6 +87,11 @@
     panel.querySelector('.act-cover').replaceChildren(big);
     var body = panel.querySelector('.act-body');
     body.replaceChildren(document.getElementById('act-' + id).content.cloneNode(true));
+    var inner = panel.querySelector('.act-inner');
+    var oldMore = inner.querySelector(':scope > .act-more');
+    if (oldMore) oldMore.remove();
+    var more = body.querySelector('.act-more');
+    if (more) inner.appendChild(more);
     body.querySelectorAll('.act-more img').forEach(function (im) { im.classList.add('zoom'); });
     body.querySelectorAll('.zoom, .act-cover .zoom').forEach(zoomable);
     panel.querySelectorAll('.act-cover .zoom').forEach(zoomable);

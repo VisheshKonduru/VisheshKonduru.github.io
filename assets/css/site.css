@@ -425,3 +425,11 @@ dialog.lb img { max-width: calc(100vw - 48px); max-height: calc(100vh - 96px); w
 .chapter-head .top-links a:hover { border-color: var(--ink); }
 .chapter-head .top-links a:focus-visible { outline: 2px solid var(--mark); outline-offset: 2px; }
 .toc p { font-variant-caps: normal; text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
+
+/* extra media: full-width row under cover + text, true aspect ratios */
+.act-inner > .act-more { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 24px; margin: 8px 0 0; }
+.act-inner > .act-more > * { flex: 1 1 360px; min-width: 0; }
+.act-inner > .act-more img, .act-inner > .act-more video { display: block; width: 100%; height: auto; }
+.act-inner > .act-more .short { flex: 0 1 280px; }
+.act-years { font-variant-caps: normal; letter-spacing: 0; font-weight: 500; font-size: 16px; color: var(--ink-2); }
+.act-body .todo-text .todo { border: 0; padding: 0; background: none; color: var(--ink-2); font-size: 16px; }
