@@ -67,7 +67,7 @@ def live(inner, src, css=""):
 
 ARM_DEMO = live("<div data-arm3d></div>", "assets/3d/arm/arm-demo.js")
 TB3_DEMO = live("<div data-tb3></div>", "assets/3d/turtlebot/embed.js")
-MQP_DEMO = live("<div data-mqp3d></div>", "assets/3d/mqp/viewer.js")
+MQP_DEMO = live("<div data-mqpvis></div>", "assets/3d/mqp/perception.js")
 UR5E_DEMO = live("<div data-ur5e3d></div>", "assets/3d/ur5e/ur5e-demo.js", css="assets/3d/ur5e/ur5e.css")
 
 
