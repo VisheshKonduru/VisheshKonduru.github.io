@@ -365,7 +365,7 @@ def about_page():
     <h2 class="label">Outside class</h2>
     <div class="prose">
       <p>I've volunteered more than 400 hours at VEX, FRC, FTC and FLL competitions. I also play in orchestra at WPI, and did in high school.</p>
-      <div class="gallery">{todo("Photo: orchestra")}{todo("Photo: volunteering at a competition")}</div>
+      <figure class="figure"><img src="assets/img/activities/orchestra_wpi.jpg" alt="Playing violin with the WPI orchestra." width="2400" height="1596" loading="lazy" decoding="async"></figure>
     </div>
   </div>
 </section>
