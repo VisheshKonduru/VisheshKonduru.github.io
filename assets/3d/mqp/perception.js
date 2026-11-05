@@ -457,7 +457,7 @@ async function init(shell, { strip, map, getStage }) {
 //   small:   the 1/8 grayscale of the sender's output (4 samples per block, as INTER_LINEAR), read back
 //   correct: sender's output / L * 120, truncated to uint8; colour class in alpha; read back
 //   flags:   which 8x8 blocks hold any class pixel, so the box search skips the rest
-// The 31x31 Gaussian on the 160x25 image runs on the CPU (blur8 in percep.js, same as the tests).
+// The Gaussian (IE.py's 31x31 scaled to 15x15 for this half-size strip) on the 160x25 image runs on the CPU (blur8 in percep.js, same as the tests).
 // Readbacks are asynchronous, so the main thread never waits on the GPU.
 const VS = 'void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }';
 const SENSE = `precision highp float; precision highp int;
@@ -547,7 +547,7 @@ function gpuPipe(THREE, renderer, pinRT) {
       await renderer.readRenderTargetPixelsAsync(smallRT, 0, 0, sw, sh, sbuf);
       t = performance.now();
       for (let b = 0; b < M; b++) small[b] = sbuf[b * 4];
-      blur8(small, tmp, L8, sw, sh, G); Ls.set(L8); LsTex.needsUpdate = true;     // IE.py: GaussianBlur((31, 31), 0)
+      blur8(small, tmp, L8, sw, sh, G); Ls.set(L8); LsTex.needsUpdate = true;     // IE.py: GaussianBlur((31, 31), 0), scaled to 15x15 here
       correct.uniforms.mode.value = 0; pass(correct, outRT); pass(flagsM, flagRT);
       const reads = [renderer.readRenderTargetPixelsAsync(outRT, 0, 0, SW, SH, outBytes), renderer.readRenderTargetPixelsAsync(flagRT, 0, 0, sw, sh, fbuf)];
       if (st !== 'out') {   // the stage on screen comes back with the same batch

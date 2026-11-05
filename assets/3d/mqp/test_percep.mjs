@@ -57,7 +57,7 @@ ok(`ground-plane projection round trip, ${tried} points, worst ${worst.toExponen
   const raw = [], cor = [];
   for (let y = 24; y < h - 24; y++) for (let x = 40; x < w - 40; x++) { const j = (y * w + x) * 4; raw.push(img[j]); cor.push(R.out[j]); }
   const spread = (a) => a.reduce((m, v) => Math.max(m, v), -1e9) - a.reduce((m, v) => Math.min(m, v), 1e9), mean = cor.reduce((s, v) => s + v, 0) / cor.length;
-  assert.ok(spread(cor) < spread(raw) * 0.6, `hotspot flattened ${spread(raw)} -> ${spread(cor)}`);
+  assert.ok(spread(cor) < spread(raw) / 3, `hotspot flattened ${spread(raw)} -> ${spread(cor)}`);
   assert.ok(Math.abs(mean - BETA) < 12, `brought to beta, mean ${mean.toFixed(1)}`);
   ok(`retinex flattens a hotspot (spread ${spread(raw)} -> ${spread(cor)}, mean ${mean.toFixed(0)})`);
   // clipping to uint8
@@ -69,9 +69,10 @@ ok(`ground-plane projection round trip, ${tried} points, worst ${worst.toExponen
   assert.deepEqual([...sc.slice(0, 3)], [144, 152, 192]);      // 160 * 0.90, 0.95, 1.2
   assert.deepEqual([...sc.slice(4, 7)], [255 * 0.9 | 0, 43 * 0.95 | 0, 255]);
   ok('sender correction matches stream_raw.py');
-  // IE.py: GaussianBlur((31, 31), 0) -> sigma 5.0, radius 15
-  const G = gaussKernel(); assert.equal(SIGMA, 5); assert.equal(G.r, 15); assert.ok(Math.abs(G.k.reduce((a, b) => a + b, 0) - 1) < 1e-6);
-  ok('31x31 kernel, sigma 5');
+  // IE.py: GaussianBlur((31, 31), 0) on 320x50, scaled to 15x15 for our 160x25 -> sigma 2.6, radius 7
+  const G = gaussKernel(); assert.ok(Math.abs(SIGMA - 2.6) < 1e-9); assert.equal(G.r, 7);
+  assert.ok(Math.abs(gaussKernel(31, 0.3 * 14 + 0.8).r - 15) < 1e-9 && Math.abs(0.3 * 14 + 0.8 - 5) < 1e-9); assert.ok(Math.abs(G.k.reduce((a, b) => a + b, 0) - 1) < 1e-6);
+  ok('15x15 kernel, sigma 2.6 (owner 31x31, sigma 5, at full size)');
   // The demo's sensor tint is roughly undone by the sender: a neutral grey comes out near neutral.
   const grey = new Uint8ClampedArray([50 * TINT[0], 50 * TINT[1], 50 * TINT[2], 255]), n2 = senderCorrect(grey, 1, 1);
   assert.ok(grey[2] < grey[0] - 15, 'raw is yellow (low blue)'); assert.ok(Math.max(n2[0], n2[1], n2[2]) - Math.min(n2[0], n2[1], n2[2]) < 12, `balanced near neutral ${[...n2.slice(0, 3)]}`);

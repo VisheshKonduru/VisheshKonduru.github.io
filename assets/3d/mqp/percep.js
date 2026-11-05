@@ -91,8 +91,10 @@ export const onField = (p, m = 0) => Math.abs(p.x) <= HALF - m && Math.abs(p.y) 
 //           B x1.2, G x0.95, R x0.90, each clipped to [0, 255] and written back into uint8 (truncates).
 //   receiver (IE.py): gray -> resize 1/8 (INTER_LINEAR) -> GaussianBlur 31x31, sigmaX 0 ->
 //           resize back (INTER_LINEAR) -> clip [1, 255] -> frame / L * 120 -> clip, astype uint8.
-// OpenCV picks sigma from the kernel when sigmaX is 0: 0.3 * ((31 - 1) * 0.5 - 1) + 0.8 = 5.0.
-export const BETA = 120, KSIZE = 31, SIGMA = 0.3 * ((KSIZE - 1) * 0.5 - 1) + 0.8;
+// OpenCV picks sigma from the kernel when sigmaX is 0: 0.3 * ((k - 1) * 0.5 - 1) + 0.8.
+// The owner's 31x31 (sigma 5.0) runs on a 320x50 small image (2560x400 / 8). This strip is half that
+// size (160x25), so the kernel is scaled to 15x15 (sigma 2.6) to blur the same share of the frame.
+export const BETA = 120, KSIZE = 15, SIGMA = 0.3 * ((KSIZE - 1) * 0.5 - 1) + 0.8;
 export const SEND = { alpha: 1.3, beta: 30, gain: [0.90, 0.95, 1.2] };   // gain in R, G, B order
 // Demo sensor look: dark with a yellow cast (low blue), set so the sender's correction above brings
 // a grey near the sensor's typical level (about 50) back to grey: (x * 1.3 + 30) * gain equal per channel.
