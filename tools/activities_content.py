@@ -66,17 +66,19 @@ ACTIVITIES = [
     dict(
         id="orchestra", label="Orchestra", title="Orchestra",
         years="Sixth grade to now: middle school, Klein High School and WPI",
-        role="Violin", honors=["Grand Champion, Festival Disney, Orlando, 2019 to 2020", "Region 9 Philharmonic Orchestra, 2022", "Performed at the 75th Midwest Clinic International Band and Orchestra Conference, Chicago, December 17, 2021"],
+        role="Violin", honors=["String Orchestra Best in Class, Festival Disney, Walt Disney World, 2020", "Region 9 Philharmonic Orchestra: junior high 2018 to 2019; high school 2019 to 2020, 2022 and 2023", "Performed at the 75th Midwest Clinic International Band and Orchestra Conference, Chicago, December 17, 2021"],
         text=(
             "<p>I have played violin since sixth grade, in orchestra through middle school and high school and now in the WPI Orchestra.</p>"
             "<p>With the Klein High School Chamber Orchestra, conducted by Creston Herron, I performed at the 75th annual <a href='https://www.midwestclinic.org/midwest-clinic-performing-organization?gid=4864&amp;pyear=2021'>Midwest Clinic International Band and Orchestra Conference</a> at McCormick Place in Chicago on December 17, 2021. The concert was released by Mark Records as <a href='https://open.spotify.com/album/6imbxGOJWm5n9EEnIwxcQD'>2021 Midwest Clinic: Klein High School Chamber Orchestra (Live)</a>. "
-            "Leading up to the clinic and in Chicago, we worked with the composers Soon Hee Newbold, Yukiko Nishimura and Javier Pinell. In 2019 to 2020 our high school orchestra was named Grand Champion at Festival Disney in Orlando, and in 2022 I played in the Region 9 Philharmonic Orchestra, performing with Kirt Mosier.</p>"
+            "Leading up to the clinic and in Chicago, we worked with the composers Soon Hee Newbold, Yukiko Nishimura and Javier Pinell. In 2019 to 2020 our high school orchestra won String Orchestra Best in Class at Festival Disney at Walt Disney World. I was also selected for the Region 9 Philharmonic Orchestra in junior high in 2018 to 2019 and in high school in 2019 to 2020, 2022 and 2023, and in 2022 performed with Kirt Mosier.</p>"
         ),
         cover=("assets/img/activities/orchestra_young.jpg", "Me playing violin when I was younger."),
         more=[("img", "assets/img/activities/orchestra_wpi.jpg", "Playing violin in a string section, left."),
               ("img", "assets/img/activities/orchestra_midwest_newbold.jpg", "With composer Soon Hee Newbold, who worked with our orchestra, at the Midwest Clinic in Chicago, 2021."),
               ("img", "assets/img/activities/orchestra_midwest_nishimura.jpg", "With composer Yukiko Nishimura at the Midwest Clinic, 2021."),
-              ("img", "assets/img/activities/orchestra_midwest_pinell.jpg", "With composer Javier Pinell at the Midwest Clinic, 2021.")],
+              ("img", "assets/img/activities/orchestra_midwest_pinell.jpg", "With composer Javier Pinell at the Midwest Clinic, 2021."),
+              ("img", "assets/img/activities/orchestra_disney_stage.jpg", "Our orchestra performing at Festival Disney, 2020."),
+              ("img", "assets/img/activities/orchestra_disney_trophy.jpg", "The String Orchestra Best in Class trophy, Festival Disney, 2020.")],
         todo=[],
     ),
     dict(
