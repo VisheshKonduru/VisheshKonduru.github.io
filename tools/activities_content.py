@@ -103,15 +103,12 @@ ACTIVITIES = [
     dict(
         id="student-solutions", label="Student Solutions", title="Student Solutions",
         years=None, role=None, honors=[],
-        text="<p>Connected high school computer science clubs across Texas.</p>",
+        text=(
+            "<p>Student Solutions brought together high school computer science clubs across the U.S. to collaborate and build a community of rising programmers. "
+            "We hosted events, helped clubs with curriculum and engaging activities, and organized guest speakers.</p>"
+            "<p>We also ran <a href='https://hacktheflow.devpost.com/'>Hack the Flow</a>, an online 38-hour hackathon for high school students across the US, focused on social good, starting March 10, 2023.</p>"
+        ),
         cover=None, more=[],
-        todo=["Photo: Student Solutions", "Role", "Years", "How many clubs, and what the network did"],
-    ),
-    dict(
-        id="hack-the-flow", label="Hack the Flow", title="Hack the Flow",
-        years="March 2023", role=None, honors=[],
-        text="<p><a href='https://hacktheflow.devpost.com/'>Hack the Flow</a> was an online 38-hour hackathon for high school students across the US, focused on social good, starting March 10, 2023.</p>",
-        cover=None, more=[],
-        todo=["Photo: Hack the Flow", "Role"],
+        todo=["Photo: Student Solutions", "Role", "Years"],
     ),
 ]
