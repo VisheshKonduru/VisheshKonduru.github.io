@@ -346,8 +346,9 @@ def about_page():
   <div>
     <h1>About me</h1>
     <div class="prose">
-      <p>I'm in WPI's combined BS and MS program in Robotics Engineering, with a minor in Computer Science, finishing in December 2027. I like work where hardware and software meet: robots that have to see and decide on their own, sensors that need careful signal processing, and tools that real people use every day.</p>
-      <p>I'm U.S. work authorized and don't need sponsorship.</p>
+      <p>I'm graduating from WPI with a BS in Robotics Engineering and a minor in Computer Science in May 2027, and an MS in Robotics Engineering in December 2027. I like work where hardware and software meet: robots that have to see and decide on their own, sensors that need careful signal processing, and tools that real people use every day.</p>
+      <p>Robotics is a big part of why I chose WPI. Over the last 8 years I've competed in or mentored FRC, VRC, FTC, FLL, VEX IQ and TSA VEX, and now VEX U and combat robotics. I first noticed WPI through robotics, from WPILib on my FRC team to the VEX U team on social media, and the WPI reception at FRC Worlds in Houston helped me decide to come here.</p>
+      <p>I'm a U.S. permanent resident.</p>
     </div>
   </div>
 </div>
@@ -364,7 +365,9 @@ def about_page():
   <div class="wrap body-grid">
     <h2 class="label">Outside class</h2>
     <div class="prose">
-      <p>I've volunteered more than 400 hours at VEX, FRC, FTC and FLL competitions. I also play in orchestra at WPI, and did in high school.</p>
+      <p>Outreach is the part of robotics I care about most. As team captain and social media lead of my FRC and VRC/TSA VEX teams in high school, I organized and ran more than 60 outreach and community events: summer camps, showcases at libraries, parks, schools and Houston Energy Day, food and toy drives, and events with other teams.</p>
+      <p>At WPI I lead media for VEX U. When the club grew into two competitive teams, I designed new logos, merchandise and branding for the club and both teams. At WAVE at WPI I met teams in the pits, answered their questions about VEX U and WPI, and grew activity on our Instagram by 2800%. I also helped set up our volunteering at VRC competitions around Massachusetts. In all, I've volunteered more than 400 hours at VEX, FRC, FTC and FLL competitions.</p>
+      <p>Outside robotics, I organized events for my computer science club and orchestra, from charity concerts and playing in stores to free Zoom coding camps for elementary and middle school students during COVID. I play violin in orchestra at WPI, and did in high school.</p>
       <figure class="figure"><img src="assets/img/activities/orchestra_wpi.jpg" alt="Playing violin with the WPI orchestra." width="2400" height="1596" loading="lazy" decoding="async"></figure>
     </div>
   </div>
