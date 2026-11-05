@@ -109,9 +109,9 @@ ACTIVITIES = [
     ),
     dict(
         id="hack-the-flow", label="Hack the Flow", title="Hack the Flow",
-        years=None, role=None, honors=[],
-        text="<p>A hackathon.</p>",
+        years="March 2023", role=None, honors=[],
+        text="<p><a href='https://hacktheflow.devpost.com/'>Hack the Flow</a> was an online 38-hour hackathon for high school students across the US, focused on social good, starting March 10, 2023.</p>",
         cover=None, more=[],
-        todo=["Photo: Hack the Flow", "Role (organizer or participant)", "Year", "What you built or ran"],
+        todo=["Photo: Hack the Flow", "Role"],
     ),
 ]
