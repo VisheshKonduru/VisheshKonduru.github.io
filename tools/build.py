@@ -51,12 +51,14 @@ def page(title, body, current, depth=0, description=""):
 <main id="main">
 {body}
 </main>
+<p class="wip">Work in progress</p>
 <footer class="site-foot">
   <div class="wrap">
     <span>Vishesh Konduru</span>
     <span><a href="mailto:{EMAIL}">{EMAIL}</a> &nbsp;·&nbsp; <a href="{LINKEDIN}">LinkedIn</a> &nbsp;·&nbsp; <a href="{GITHUB}">GitHub</a></span>
   </div>
 </footer>
+<script src="{up}assets/js/lite.js"></script>
 <script>
 (function(){{var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
 function go(){{if(!done){{done=true;hero.classList.add('go');}}}}
@@ -67,11 +69,6 @@ setTimeout(go,2500);}})();
 (function(){{var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
 if(!h||!hero)return;function f(){{h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}}
 f();addEventListener('scroll',f,{{passive:true}});addEventListener('resize',f);}})();
-(function(){{var ds=document.querySelectorAll('[data-demo]');if(!ds.length)return;
-function load(d){{if(d.dataset.loaded)return;d.dataset.loaded='1';import(new URL(d.dataset.demo,location.href).href).catch(function(e){{console.error(e);}});}}
-if(!('IntersectionObserver' in window)){{ds.forEach(load);return;}}
-var lo=new IntersectionObserver(function(es){{es.forEach(function(e){{if(e.isIntersecting){{lo.unobserve(e.target);load(e.target);}}}});}},{{rootMargin:'300px'}});
-ds.forEach(function(d){{lo.observe(d);}});}})();
 (function(){{if(!('IntersectionObserver' in window))return;
 var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(!still){{var els=document.querySelectorAll('main > section .wrap > *, .article > *, .stop, .entry');
@@ -102,7 +99,7 @@ def todo(text, cls=""):
 
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from projects_content import PROJECTS  # noqa: E402
+from projects_content import PROJECTS, IMPORTMAP  # noqa: E402
 
 
 def honors_block(p):
@@ -215,8 +212,6 @@ def index_page():
     </div>
   </div>
 </section>
-<p class="wip">Work in progress</p>
-
 <section id="projects">
   <div class="wrap">
     <div class="section-head"><h2>Projects</h2></div>
@@ -278,6 +273,10 @@ def _media(m):
         return (f'<figure class="figure"><button class="yt short" type="button" data-id="{src}" data-title="{cap}" '
                 f'aria-label="Play video: {cap}"><img src="https://i.ytimg.com/vi/{src}/hqdefault.jpg" alt="" width="480" height="360">'
                 f'<span>Play video</span></button><figcaption>{cap}</figcaption></figure>')
+    if kind == "3d":
+        return (f'<figure class="figure robot-fig"><div class="robot3d" data-demo="assets/3d/robots/robot-viewer.js" '
+                f'data-model="{src}" data-label="3D model: {cap}. Drag to turn, scroll or pinch to zoom, arrow keys turn."></div>'
+                f'<figcaption>{cap}</figcaption></figure>')
     raise ValueError(kind)
 
 
@@ -333,6 +332,7 @@ def activities_page():
   </div>
 </div></li></template>
 <dialog class="lb" aria-label="Photo"><button type="button" class="act-btn lb-close">Close</button><img alt=""></dialog>
+{IMPORTMAP}
 <script src="assets/js/activities.js" defer></script>
 """
     return page("Activities · Vishesh Konduru", body, "activities.html",
@@ -451,6 +451,11 @@ def _bust(html, base):
             return m.group(0)
         return f'{m.group(1)}="{url}?v={_ver(p)}"'
     html = re.sub(r'\b(href|src|data-demo)="([^"?#:]+\.(?:css|js))"', ver, html)
+
+    def media(m):  # loop videos and posters named in data-lite
+        p = (base / m.group(0)).resolve()
+        return f"{m.group(0)}?v={_ver(p)}" if p.is_file() else m.group(0)
+    html = re.sub(r'(?:\.\./)*assets/lite/[\w.-]+\.(?:mp4|jpg)', media, html)
 
     def imap(m):
         data = json.loads(m.group(1))

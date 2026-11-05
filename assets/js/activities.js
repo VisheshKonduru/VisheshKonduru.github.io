@@ -71,7 +71,21 @@
     swipe(panel);
   }
 
+  /* ---------- 3D robot viewers: loaded when their panel opens, disposed when it closes ---------- */
+  var viewers = [];
+  function unmountViewers() { viewers.forEach(function (v) { v.off = true; if (v.dispose) v.dispose(); }); viewers = []; }
+  function mountViewers() {
+    panel.querySelectorAll('.robot3d[data-demo]').forEach(function (el) {
+      var v = { off: false, dispose: null };
+      viewers.push(v);
+      import(new URL(el.dataset.demo, location.href).href).then(function (m) {
+        if (!v.off && el.isConnected) v.dispose = m.mount(el);
+      }).catch(function (e) { console.error(e); });
+    });
+  }
+
   function fill(id) {
+    unmountViewers();
     var t = tileMedia(id), big;
     if (t.tagName === 'IMG') {
       big = document.createElement('img');
@@ -98,6 +112,7 @@
     var h = body.querySelector('.act-title');
     h.tabIndex = -1;
     panel.setAttribute('aria-label', h.textContent);
+    mountViewers();
   }
 
   function scrollToPanel() {
@@ -185,7 +200,7 @@
     if (!panel || !current) return;
     var id = current;
     current = null;
-    function update() { mark(id, false); if (!current) panel.remove(); }
+    function update() { mark(id, false); if (!current) { unmountViewers(); panel.remove(); } }
     function after() { link(id).focus({ preventScroll: true }); }
     if (!animate) { update(); after(); return; }
     if (still.matches) { once(grow(panel, false), function () { update(); after(); }); return; }

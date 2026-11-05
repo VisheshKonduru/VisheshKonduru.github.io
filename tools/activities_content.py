@@ -25,6 +25,7 @@ ACTIVITIES = [
             ("video", "assets/video/vex_worlds.mp4", "A match from the driver&rsquo;s spot, May 2025."),
             ("yt", "1kmXXycRsSI", "VEX U 2024-25 endgame climb interview"),
             ("img", "assets/img/mqp/robot.jpg", "The autonomous Push Back robot."),
+            ("3d", "assets/3d/robots/vexu.glb", "Robot CAD"),
         ],
         todo=["Photo: 2023-24 robot (Over Under)", "Photo: VEX U World Championship"],
     ),
@@ -48,7 +49,11 @@ ACTIVITIES = [
         role=None, honors=["TSA Texas State Championship winner, VEX, 2023"],
         text="<p>Alongside FRC, I built robots on a VEX team in high school.</p>",
         cover=("assets/img/activities/vrc_1.jpg", "Our team with our VEX robot at the 2023 TSA Texas State Championship."),
-        more=[("img", "assets/img/activities/vrc_2.jpg", "Our team with our robots at the 2023 TSA Texas State Championship.")],
+        more=[
+            ("img", "assets/img/activities/vrc_2.jpg", "Our team with our robots at the 2023 TSA Texas State Championship."),
+            ("3d", "assets/3d/robots/vex_a.glb", "Robot CAD"),
+            ("3d", "assets/3d/robots/vex_b.glb", "Robot CAD"),
+        ],
         todo=["Team name and number", "Role on the team", "Exact years"],
     ),
     dict(
