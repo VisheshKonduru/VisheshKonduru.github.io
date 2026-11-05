@@ -206,8 +206,8 @@ def index_page():
     <div class="hero-lockup">
     <h1 class="hero-name">Vishesh Konduru</h1>
     <div class="hero-block">
-      <div><span>Robotics Engineering, CS Minor, WPI</span><span>BS May 2027 &middot; MS December 2027</span></div>
-      <div><span>Software Engineer</span><span>Cavall Labs</span></div>
+      <div><span>Robotics Engineering, CS Minor, <a href="https://www.wpi.edu/">WPI</a></span><span>BS May 2027 &middot; MS December 2027</span></div>
+      <div><span>Software Engineer</span><span><a href="https://www.cavall.ai/">Cavall Labs</a></span></div>
     </div>
     <div class="hero-links"><a href="mailto:{EMAIL}">Email</a><a href="{LINKEDIN}">LinkedIn</a><a href="{GITHUB}">GitHub</a><a href="{RESUME}">Resume</a></div>
     <a class="hero-live" href="#projects">See my projects run live in your browser</a>
