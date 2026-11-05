@@ -336,8 +336,8 @@ PROJECTS = [
     ),
     dict(
         slug="rbe3001",
-        title="RBE-3001 Final Project",
-        short="RBE-3001 Final Project",
+        title="4-DOF Robot Arm Kinematics and Vision-Based Object Sorting",
+        short="4-DOF Robot Arm Kinematics and Vision-Based Object Sorting",
         thumb="assets/img/arm/thumb.jpg",
         meta="Course project at WPI, 2025. Team of four with Olivia Cavanagh, Graham Mack and Henry Sica.",
         blurb="A 4-joint robot arm with a camera that sorts coloured balls, follows a ball around in real time, and plays tic-tac-toe against a person.",
@@ -379,8 +379,8 @@ PROJECTS = [
     ),
     dict(
         slug="ur5e",
-        title="Robot dynamics and control (RBE 501 + 502)",
-        short="Robot dynamics and control (RBE 501 + 502)",
+        title="Dynamic Control of a 6-DOF Robot Arm",
+        short="Dynamic Control of a 6-DOF Robot Arm",
         thumb="assets/img/ur5e/thumb.jpg",
         meta="Coursework applied: RBE 501 (Robot Dynamics) and RBE 502 (Robot Control) at WPI.",
         blurb="A live model of a Universal Robots UR5e that applies the kinematics, dynamics and control from RBE 501 and RBE 502, using the masses, inertias and joint limits Universal Robots publishes for the arm.",
