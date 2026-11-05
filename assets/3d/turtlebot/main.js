@@ -202,6 +202,7 @@ export function start(shell) {
   const particles = new THREE.InstancedMesh(new THREE.ShapeGeometry(arrowShape), new THREE.MeshBasicMaterial({ color: PARTICLE_COLOR, side: THREE.DoubleSide }), MAXP);
   particles.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   particles.frustumCulled = false; particles.count = 0; particles.renderOrder = 5; particles.position.z = 0.012;
+  particles.frustumCulled = false; // instances move every update; the cached bounding sphere would cull them
   ros.add(particles);
   const estArrow = new THREE.Mesh(new THREE.ShapeGeometry(arrowShape), new THREE.MeshBasicMaterial({ color: POSE_COLOR, side: THREE.DoubleSide }));
   estArrow.scale.setScalar(3); estArrow.renderOrder = 6;
