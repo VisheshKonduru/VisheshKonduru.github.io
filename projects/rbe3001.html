@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RBE-3001 Final Project · Vishesh Konduru</title>
+<title>4-DOF Robot Arm Kinematics and Vision-Based Object Sorting · Vishesh Konduru</title>
 <meta name="description" content="A 4-joint robot arm with a camera that sorts coloured balls, follows a ball around in real time, and plays tic-tac-toe against a person.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/css/site.css?v=de7426ec">
+<link rel="stylesheet" href="../assets/css/site.css?v=b985ed0a">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -22,14 +22,14 @@
 
 <article class="wrap chapter">
   <header class="chapter-head">
-    <p class="crumb"><a href="../index.html">Work</a> / RBE-3001 Final Project</p>
-    <h1>RBE-3001 Final Project</h1>
+    <p class="crumb"><a href="../index.html">Work</a> / 4-DOF Robot Arm Kinematics and Vision-Based Object Sorting</p>
+    <h1>4-DOF Robot Arm Kinematics and Vision-Based Object Sorting</h1>
     
     <p class="head-meta">Course project at WPI, 2025. Team of four with Olivia Cavanagh, Graham Mack and Henry Sica.</p>
     <p class="head-skills"><span>Skills</span> MATLAB, Kinematics, Computer vision</p>
     <div class="links top-links"><a href="../docs/RBE3001_Report.pdf" class="local">Report</a><a href="https://www.youtube.com/watch?v=zCdq1DwnjjE" class="">Video</a><a href="https://github.com/RBE3001-C25/RBE3001_C25_Team_2/releases/tag/TicTacToe" class="">Code</a></div>
   </header>
-  <link rel="stylesheet" href="../assets/3d/demo-shell.css?v=17da5ad1"><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","../assets/3d/arm/arm-demo.js":"../assets/3d/arm/arm-demo.js?v=29149714","../assets/3d/arm/ik.js":"../assets/3d/arm/ik.js?v=992c2c36","../assets/3d/arm/ttt.js":"../assets/3d/arm/ttt.js?v=fb8b91ac","../assets/3d/arm/vision.js":"../assets/3d/arm/vision.js?v=9a1b6d14","../assets/3d/demo-shell.js":"../assets/3d/demo-shell.js?v=410f6225","../assets/3d/mqp/percep.js":"../assets/3d/mqp/percep.js?v=2b141957","../assets/3d/mqp/perception.js":"../assets/3d/mqp/perception.js?v=d49de310","../assets/3d/mqp/viewer.js":"../assets/3d/mqp/viewer.js?v=d338984f","../assets/3d/turtlebot/embed.js":"../assets/3d/turtlebot/embed.js?v=3ea7d3bf","../assets/3d/turtlebot/loc.js":"../assets/3d/turtlebot/loc.js?v=9e59cd54","../assets/3d/turtlebot/main.js":"../assets/3d/turtlebot/main.js?v=bb8903cf","../assets/3d/turtlebot/sim.js":"../assets/3d/turtlebot/sim.js?v=b135e449","../assets/3d/ur5e/plan-worker.js":"../assets/3d/ur5e/plan-worker.js?v=6989a50b","../assets/3d/ur5e/planner.js":"../assets/3d/ur5e/planner.js?v=fa65f58e","../assets/3d/ur5e/plots.js":"../assets/3d/ur5e/plots.js?v=d2ce7c6a","../assets/3d/ur5e/robot.js":"../assets/3d/ur5e/robot.js?v=e1883e5d","../assets/3d/ur5e/sim.js":"../assets/3d/ur5e/sim.js?v=ef71db94","../assets/3d/ur5e/ur5e-demo.js":"../assets/3d/ur5e/ur5e-demo.js?v=9f4c2a2b","../assets/3d/ur5e/ur5e-model.js":"../assets/3d/ur5e/ur5e-model.js?v=830354b7"}}</script><div class="live" id="live-demo" data-demo="../assets/3d/arm/arm-demo.js?v=29149714"><h2 class="live-head" id="try-it-live">Try it live</h2><div class="live-fig"><div data-arm3d></div></div></div>
+  <link rel="stylesheet" href="../assets/3d/demo-shell.css?v=17da5ad1"><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","../assets/3d/arm/arm-demo.js":"../assets/3d/arm/arm-demo.js?v=29149714","../assets/3d/arm/ik.js":"../assets/3d/arm/ik.js?v=992c2c36","../assets/3d/arm/ttt.js":"../assets/3d/arm/ttt.js?v=fb8b91ac","../assets/3d/arm/vision.js":"../assets/3d/arm/vision.js?v=9a1b6d14","../assets/3d/demo-shell.js":"../assets/3d/demo-shell.js?v=410f6225","../assets/3d/mqp/percep.js":"../assets/3d/mqp/percep.js?v=2b141957","../assets/3d/mqp/perception.js":"../assets/3d/mqp/perception.js?v=d49de310","../assets/3d/mqp/viewer.js":"../assets/3d/mqp/viewer.js?v=d338984f","../assets/3d/robots/robot-viewer.js":"../assets/3d/robots/robot-viewer.js?v=d7ee55ab","../assets/3d/turtlebot/embed.js":"../assets/3d/turtlebot/embed.js?v=3ea7d3bf","../assets/3d/turtlebot/loc.js":"../assets/3d/turtlebot/loc.js?v=9e59cd54","../assets/3d/turtlebot/main.js":"../assets/3d/turtlebot/main.js?v=0960cc4c","../assets/3d/turtlebot/sim.js":"../assets/3d/turtlebot/sim.js?v=b135e449","../assets/3d/ur5e/plan-worker.js":"../assets/3d/ur5e/plan-worker.js?v=6989a50b","../assets/3d/ur5e/planner.js":"../assets/3d/ur5e/planner.js?v=fa65f58e","../assets/3d/ur5e/plots.js":"../assets/3d/ur5e/plots.js?v=d2ce7c6a","../assets/3d/ur5e/robot.js":"../assets/3d/ur5e/robot.js?v=e1883e5d","../assets/3d/ur5e/sim.js":"../assets/3d/ur5e/sim.js?v=ef71db94","../assets/3d/ur5e/ur5e-demo.js":"../assets/3d/ur5e/ur5e-demo.js?v=9f4c2a2b","../assets/3d/ur5e/ur5e-model.js":"../assets/3d/ur5e/ur5e-model.js?v=830354b7"}}</script><div class="live" id="live-demo" data-demo="../assets/3d/arm/arm-demo.js?v=29149714" data-lite='{"label":"Robot arm sorting balls and playing tic-tac-toe","loops":[{"label":"Sort balls","w":1280,"h":700,"mp4":"../assets/lite/arm_sort.mp4?v=85cba71a","av1":"../assets/lite/arm_sort_av1.mp4?v=d0f74009","poster":"../assets/lite/arm_sort.jpg?v=fd0b0089"},{"label":"Play tic-tac-toe","w":1280,"h":700,"mp4":"../assets/lite/arm_ttt.mp4?v=fea0bfc1","av1":"../assets/lite/arm_ttt_av1.mp4?v=22fba099","poster":"../assets/lite/arm_ttt.jpg?v=7ae553ba"}]}'><h2 class="live-head" id="try-it-live">Try it live</h2><div class="live-fig"><div data-arm3d></div></div></div>
   <div class="chapter-body">
     <aside class="toc-col"><nav class="toc" aria-label="Sections"><p>On this page</p><ol><li><a href="#kinematics">Kinematics</a></li><li><a href="#seeing-the-board">Seeing the board</a></li><li><a href="#sorting">Sorting</a></li><li><a href="#real-time-tracking">Real-time tracking</a></li><li><a href="#tic-tac-toe">Tic-tac-toe</a></li></ol></nav></aside>
     <div class="article">
@@ -41,16 +41,18 @@
 <section><div class="wrap pager">
   <a href="iqp.html"><span>Previous</span>&larr; Giving Shells a New Life: Oyster Waste Solutions in Angsila, Thailand</a>
   <a class="back" href="../index.html">Back to Work</a>
-  <a href="ur5e.html"><span>Next</span>Robot dynamics and control (RBE 501 + 502) &rarr;</a>
+  <a href="ur5e.html"><span>Next</span>Dynamic Control of a 6-DOF Robot Arm &rarr;</a>
 </div></section>
 
 </main>
+<p class="wip">Work in progress</p>
 <footer class="site-foot">
   <div class="wrap">
     <span>Vishesh Konduru</span>
     <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
   </div>
 </footer>
+<script src="../assets/js/lite.js?v=f8592264"></script>
 <script>
 (function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
 function go(){if(!done){done=true;hero.classList.add('go');}}
@@ -61,11 +63,6 @@ setTimeout(go,2500);})();
 (function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
 if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
 f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
-(function(){var ds=document.querySelectorAll('[data-demo]');if(!ds.length)return;
-function load(d){if(d.dataset.loaded)return;d.dataset.loaded='1';import(new URL(d.dataset.demo,location.href).href).catch(function(e){console.error(e);});}
-if(!('IntersectionObserver' in window)){ds.forEach(load);return;}
-var lo=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){lo.unobserve(e.target);load(e.target);}});},{rootMargin:'300px'});
-ds.forEach(function(d){lo.observe(d);});})();
 (function(){if(!('IntersectionObserver' in window))return;
 var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(!still){var els=document.querySelectorAll('main > section .wrap > *, .article > *, .stop, .entry');

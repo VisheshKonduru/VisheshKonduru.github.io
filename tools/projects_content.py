@@ -13,6 +13,9 @@ Each body is a list of blocks:
 
 A project with a live demo sets demo=live(...); the page puts it under the spec list.
 """
+import html as html_lib
+import json
+from pathlib import Path
 
 
 def h(text):
@@ -54,21 +57,38 @@ IMPORTMAP = ('<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr
              '"three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>')
 
 
-def live(inner, src, css=""):
+_LOOPS = Path(__file__).resolve().parent.parent / "assets" / "lite" / "loops.json"
+
+
+def _lite(name, label):
+    """data-lite JSON for an embed: the recorded loops (one per tab) from assets/lite/loops.json."""
+    try:
+        man = json.loads(_LOOPS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    loops = [dict(label=l["label"], w=l["w"], h=l["h"], mp4=f"../assets/lite/{l['file']}.mp4",
+                  av1=f"../assets/lite/{l['file']}_av1.mp4", poster=f"../assets/lite/{l['file']}.jpg")
+             for l in man.get(name, [])]
+    if not loops:
+        return ""
+    return " data-lite='" + html_lib.escape(json.dumps(dict(label=label, loops=loops), separators=(",", ":")), quote=False).replace("'", "&#39;") + "'"
+
+
+def live(inner, src, css="", lite=None, label=""):
     """Live demo block, placed under the project's spec list. The page's lazy loader imports
     `src` (relative to the project page) only when the block scrolls near, so only demos in
     view load. Every demo builds the shared layout from assets/3d/demo-shell.js (tabs, flow row,
     view, status, column of live plots). The demo folders' own index.html files are dev harnesses."""
     link = '<link rel="stylesheet" href="../assets/3d/demo-shell.css">' + (f'<link rel="stylesheet" href="../{css}">' if css else "")
-    return (f'{link}{IMPORTMAP}<div class="live" id="live-demo" data-demo="../{src}">'
+    return (f'{link}{IMPORTMAP}<div class="live" id="live-demo" data-demo="../{src}"{_lite(lite, label) if lite else ""}>'
             f'<h2 class="live-head">Try it live</h2>'
             f'<div class="live-fig">{inner}</div></div>')
 
 
-ARM_DEMO = live("<div data-arm3d></div>", "assets/3d/arm/arm-demo.js")
-TB3_DEMO = live("<div data-tb3></div>", "assets/3d/turtlebot/embed.js")
-MQP_DEMO = live("<div data-mqpvis></div>", "assets/3d/mqp/perception.js")
-UR5E_DEMO = live("<div data-ur5e3d></div>", "assets/3d/ur5e/ur5e-demo.js", css="assets/3d/ur5e/ur5e.css")
+ARM_DEMO = live("<div data-arm3d></div>", "assets/3d/arm/arm-demo.js", lite="arm", label="Robot arm sorting balls and playing tic-tac-toe")
+TB3_DEMO = live("<div data-tb3></div>", "assets/3d/turtlebot/embed.js", lite="tb3", label="TurtleBot mapping and localizing in a maze")
+MQP_DEMO = live("<div data-mqpvis></div>", "assets/3d/mqp/perception.js", lite="mqp", label="Robot finding blocks with four corner cameras")
+UR5E_DEMO = live("<div data-ur5e3d></div>", "assets/3d/ur5e/ur5e-demo.js", css="assets/3d/ur5e/ur5e.css", lite="ur5e", label="UR5e arm following the tool and planning around obstacles")
 
 
 KATEX = ('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">'

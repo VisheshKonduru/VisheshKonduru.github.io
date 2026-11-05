@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/site.css?v=de7426ec">
+<link rel="stylesheet" href="assets/css/site.css?v=b985ed0a">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -35,8 +35,6 @@
     </div>
   </div>
 </section>
-<p class="wip">Work in progress</p>
-
 <section id="projects">
   <div class="wrap">
     <div class="section-head"><h2 id="projects">Projects</h2></div>
@@ -75,7 +73,7 @@
 </div><div class="entry">
   <div class="entry-media"><img class="entry-img" src="assets/img/arm/thumb.jpg" alt="" decoding="async" loading="lazy" width="1600" height="900"></div>
   <div class="entry-text">
-    <h3><a class="entry-link" href="projects/rbe3001.html">RBE-3001 Final Project</a></h3>
+    <h3><a class="entry-link" href="projects/rbe3001.html">4-DOF Robot Arm Kinematics and Vision-Based Object Sorting</a></h3>
     
     <p>A 4-joint robot arm with a camera that sorts coloured balls, follows a ball around in real time, and plays tic-tac-toe against a person.</p>
     <p class="try"><a href="projects/rbe3001.html#live-demo">Try it live</a></p>
@@ -83,7 +81,7 @@
 </div><div class="entry">
   <div class="entry-media"><img class="entry-img" src="assets/img/ur5e/thumb.jpg" alt="" decoding="async" loading="lazy" width="480" height="360"></div>
   <div class="entry-text">
-    <h3><a class="entry-link" href="projects/ur5e.html">Robot dynamics and control (RBE 501 + 502)</a></h3>
+    <h3><a class="entry-link" href="projects/ur5e.html">Dynamic Control of a 6-DOF Robot Arm</a></h3>
     
     <p>A live model of a Universal Robots UR5e that applies the kinematics, dynamics and control from RBE 501 and RBE 502, using the masses, inertias and joint limits Universal Robots publishes for the arm.</p>
     <p class="try"><a href="projects/ur5e.html#live-demo">Try it live</a></p>
@@ -121,12 +119,14 @@
 </section>
 
 </main>
+<p class="wip">Work in progress</p>
 <footer class="site-foot">
   <div class="wrap">
     <span>Vishesh Konduru</span>
     <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
   </div>
 </footer>
+<script src="assets/js/lite.js?v=f8592264"></script>
 <script>
 (function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
 function go(){if(!done){done=true;hero.classList.add('go');}}
@@ -137,11 +137,6 @@ setTimeout(go,2500);})();
 (function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
 if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
 f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
-(function(){var ds=document.querySelectorAll('[data-demo]');if(!ds.length)return;
-function load(d){if(d.dataset.loaded)return;d.dataset.loaded='1';import(new URL(d.dataset.demo,location.href).href).catch(function(e){console.error(e);});}
-if(!('IntersectionObserver' in window)){ds.forEach(load);return;}
-var lo=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){lo.unobserve(e.target);load(e.target);}});},{rootMargin:'300px'});
-ds.forEach(function(d){lo.observe(d);});})();
 (function(){if(!('IntersectionObserver' in window))return;
 var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(!still){var els=document.querySelectorAll('main > section .wrap > *, .article > *, .stop, .entry');
