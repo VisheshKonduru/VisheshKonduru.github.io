@@ -70,11 +70,13 @@ ACTIVITIES = [
         text=(
             "<p>I have played violin since sixth grade, in orchestra through middle school and high school and now in the WPI Orchestra.</p>"
             "<p>With the Klein High School Chamber Orchestra I performed at the 75th anniversary Midwest Clinic, the international band and orchestra conference at McCormick Place in Chicago, in December 2021. The concert was recorded and released by Mark Records. "
-            "At the clinic I met the composer Soon Hee Newbold. In 2019 to 2020 our high school orchestra won Festival Disney.</p>"
+            "At the clinic I met the composers Soon Hee Newbold, Yukiko Nishimura and Javier Pinell. In 2019 to 2020 our high school orchestra won Festival Disney.</p>"
         ),
         cover=("assets/img/activities/orchestra_young.jpg", "Me playing violin when I was younger."),
         more=[("img", "assets/img/activities/orchestra_wpi.jpg", "Playing violin in a string section, left."),
-              ("img", "assets/img/activities/orchestra_midwest_newbold.jpg", "With composer Soon Hee Newbold at the Midwest Clinic in Chicago, 2021.")],
+              ("img", "assets/img/activities/orchestra_midwest_newbold.jpg", "With composer Soon Hee Newbold at the Midwest Clinic in Chicago, 2021."),
+              ("img", "assets/img/activities/orchestra_midwest_nishimura.jpg", "With composer Yukiko Nishimura at the Midwest Clinic, 2021."),
+              ("img", "assets/img/activities/orchestra_midwest_pinell.jpg", "With composer Javier Pinell at the Midwest Clinic, 2021.")],
         todo=[],
     ),
     dict(
