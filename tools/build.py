@@ -51,7 +51,7 @@ def page(title, body, current, depth=0, description=""):
 <main id="main">
 {body}
 </main>
-<p class="wip">Work in progress</p>
+<div class="wip-box"><p class="wip">Work in progress</p><a class="feedback" href="mailto:vishesh-konduru@outlook.com?subject=Portfolio%20feedback">Feedback</a></div>
 <footer class="site-foot">
   <div class="wrap">
     <span>Vishesh Konduru</span>
@@ -370,7 +370,7 @@ def about_page():
       <p>I've been a member of, and led, teams from 5 to 165 people. On WPI VEX U I have held several roles over the years: secretary, marketing head/media lead, build lead, driver and programmer. Since my freshman year I've helped build and program robots for the team's most successful, record-setting seasons. Building two robots for the VEX U World Championship whose designs and match strategies complement each other is the challenge I enjoy most, and it's where my interest in multi-robot systems comes from.</p>
       <p>Teaching and outreach have been a big part of robotics for me. In high school I helped organize more than sixty outreach and community events, mentored robotics teams, and taught STEM camps. As the Robotics Outreach Assistant with WPI Admissions, I organized robotics events, worked with FIRST and VEX/RECF, made Admissions content, and analyzed applicant and alumni data to plan outreach. I've also volunteered more than 400 hours at robotics competitions.</p>
       <p>I play violin in the WPI Orchestra, and have played for 10 years, through middle school and high school.</p>
-      <figure class="figure"><img src="assets/img/activities/orchestra_wpi.jpg" alt="Playing violin with the WPI orchestra." width="2400" height="1596" loading="lazy" decoding="async"></figure>
+      <figure class="figure"><img src="assets/img/activities/orchestra_wpi.jpg" alt="Playing violin with the WPI orchestra." width="2400" height="1597" loading="lazy" decoding="async"></figure>
     </div>
   </div>
 </section>

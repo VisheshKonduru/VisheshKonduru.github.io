@@ -412,9 +412,13 @@ dialog.lb img { max-width: calc(100vw - 48px); max-height: calc(100vh - 96px); w
   .jg-frame .todo { font-size: 14px; padding: 8px; }
 }
 
-.wip { position: fixed; right: 16px; bottom: 16px; z-index: 50; margin: 0; padding: 8px 14px; background: #c62828; color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .02em; border-radius: 4px; }
+.wip-box { position: fixed; right: 16px; bottom: 16px; z-index: 50; display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.wip { margin: 0; padding: 8px 14px; background: #c62828; color: #fff; font-size: 14px; font-weight: 600; letter-spacing: .02em; border-radius: 4px; text-align: center; }
+.feedback { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 14px; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); border-radius: 4px; font-size: 14px; font-weight: 600; text-decoration: none; }
+.feedback:hover { background: var(--ink); color: var(--paper); }
+.feedback:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 /* On phones the box sits at the end of the page instead of over the demo controls. */
-@media (max-width: 720px) { .wip { position: static; display: block; width: max-content; margin: 0 var(--pad) 16px auto; } }
+@media (max-width: 720px) { .wip-box { position: static; width: max-content; margin: 0 var(--pad) 16px auto; } }
 
 /* ---------- lite mode ---------- */
 .lite-toggle { font: inherit; font-size: 16px; color: var(--ink-2); background: none; border: 0; padding: 0; margin: -12px 0; min-height: 44px; cursor: pointer; }
