@@ -1,6 +1,6 @@
 // node assets/3d/mqp/test_percep.mjs
 import assert from 'node:assert/strict';
-import { CAM, CAMS, distort, undistort, fieldToPixel, pixelToField, retinex, detect, whiteBalance, BETA } from './percep.js';
+import { CAM, CAMS, distort, undistort, fieldToPixel, pixelToField, retinex, detect, whiteBalance, BETA, createPipe, mergeEstimates, boxesFromAlpha } from './percep.js';
 
 let n = 0; const ok = (m) => { n++; console.log('ok', m); };
 
@@ -78,5 +78,30 @@ ok(`ground-plane projection round trip, ${tried} points, worst ${worst.toExponen
   const red = b.find(x => x.color === 'red'), blue = b.find(x => x.color === 'blue');
   assert.deepEqual([red.cam, red.x0, red.y1], [0, 40, 24]); assert.deepEqual([blue.cam, blue.x0, blue.y1], [1, 80, 14]);
   ok('colour detector boxes');
+}
+// The fused pipeline matches the step-by-step reference.
+{
+  const w = 1280, h = 200, img = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const lx = (x % 320 - 160) / 160, ly = (y - 100) / 160, g = 0.22 + 1.05 * Math.exp(-(lx * lx + ly * ly) / 0.16), j = (y * w + x) * 4;
+    let c = [140, 140, 140]; if ((x % 97) < 6 && (y % 53) < 5) c = (x / 97 | 0) % 2 ? [200, 30, 25] : [30, 60, 210];
+    img[j] = c[0] * g * 0.55; img[j + 1] = c[1] * g * 0.55 * 0.84; img[j + 2] = c[2] * g * 0.55 * 0.4; img[j + 3] = 255;
+  }
+  const R = retinex(whiteBalance(img, w, h), w, h), ref = detect(R.out, w, h, 320);
+  const P = createPipe({ W: w, H: h }); P.load(img); const fast = P.correct();
+  let worst = 0; for (let j = 0; j < R.out.length; j += 4) for (let c = 0; c < 3; c++) worst = Math.max(worst, Math.abs(R.out[j + c] - P.out[j + c]));
+  let sum = 0; for (let j = 0; j < R.out.length; j++) sum += Math.abs(R.out[j] - P.out[j]); const mean = sum / (R.out.length * 0.75);
+  assert.ok(worst <= 4 && mean < 1, `fused vs reference, worst ${worst}, mean ${mean}`);
+  assert.equal(fast.length, ref.length);
+  ok(`fused pipeline matches reference (mean diff ${mean.toFixed(2)}, max ${worst} levels in dark corners, ${fast.length} boxes both)`);
+  const g = mergeEstimates([{ color: 'red', x: 0, y: 0, cam: 0 }, { color: 'red', x: 2, y: 1, cam: 1 }, { color: 'blue', x: 1, y: 0, cam: 1 }, { color: 'red', x: 30, y: 0, cam: 0 }]);
+  assert.equal(g.length, 3); ok('overlapping detections merge per block');
+  // GPU readback form: class in alpha, 8x8 flags. Same boxes as the full scan.
+  const Q = createPipe({ W: w, H: h }); Q.load(img); const want = Q.correct(), cls = new Uint8Array(w * h);
+  const bytes = new Uint8Array(w * h * 4).fill(255), flags = new Uint8Array((w / 8) * (h / 8) * 4);
+  for (const b of want) for (let y = b.y0; y < b.y1; y++) for (let x = b.x0; x < b.x1; x++) { const i = y * w + b.cam * 320 + x; bytes[i * 4 + 3] = b.color === 'red' ? 254 : 253; flags[((y >> 3) * (w / 8) + (((b.cam * 320 + x)) >> 3)) * 4] = 1; }
+  const got = boxesFromAlpha(bytes, flags, new Uint8Array(w * h), new Int32Array(w * h), w, h);
+  const key = (a) => a.map(b => [b.color, b.cam, b.x0, b.y0, b.x1, b.y1].join()).sort().join('|');
+  assert.equal(key(got), key(want)); ok(`flag-restricted search finds the same ${got.length} boxes`);
 }
 console.log(`${n} passed`);

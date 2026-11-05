@@ -3,7 +3,7 @@
 // report's illumination correction, a colour detector boxes the blocks, and each box's bottom-centre
 // pixel is projected onto the floor. The map only ever shows what the pixels say.
 import { createShell, h } from '../demo-shell.js';
-import { CAM, CAMS, HALF, FIELD, BLOCK, MOUNT_H, PITCH, undistort, pixelToField, onField, retinex, whiteBalance, detect } from './percep.js';
+import { CAM, CAMS, HALF, FIELD, BLOCK, MOUNT_H, PITCH, undistort, pixelToField, onField, createPipe, boxesFromAlpha, mergeEstimates, SIGMA, BETA } from './percep.js';
 
 const params = new URLSearchParams(location.search);
 const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -80,10 +80,14 @@ const START_POSE = { x: -34, y: -4, th: 0.35 };
 
 async function init(shell, { strip, map, getStage }) {
   const THREE = await import('three');
+  const { mergeGeometries } = await import('three/addons/utils/BufferGeometryUtils.js');
+  // Static parts that share a material become one mesh: fewer draw calls in each of the five renders.
+  const statics = new Map();
+  const addStatic = (geo, mat, pos) => { geo.translate(pos.x, pos.y, pos.z); if (!statics.has(mat)) statics.set(mat, []); statics.get(mat).push(geo); };
   const view = shell.view, root = shell.root;
   const T = (x, y, z = 0) => new THREE.Vector3(x, z, -y);       // field (z up) -> three (y up)
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: params.has('shot') });
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.5));
   const canvas = renderer.domElement; view.insertBefore(canvas, view.firstChild);
   view.querySelector('.ds-loading')?.remove();
@@ -102,7 +106,7 @@ async function init(shell, { strip, map, getStage }) {
   scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seams), new THREE.LineBasicMaterial({ color: 0x7a7e83 })));
   const wallM = lam(0xc9ccd0);
   for (const [x, y, w, d] of [[0, HALF + 1, FIELD + 4, 2], [0, -HALF - 1, FIELD + 4, 2], [HALF + 1, 0, 2, FIELD], [-HALF - 1, 0, 2, FIELD]]) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, 4, d), wallM); m.position.copy(T(x, y, 2)); scene.add(m);
+    addStatic(new THREE.BoxGeometry(w, 4, d), wallM, T(x, y, 2));
   }
   // Alliance colour strips on the two driver walls.
   for (const [x, c] of [[-HALF - 1, RED], [HALF + 1, BLUE]]) { const m = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.8, FIELD), lam(c)); m.position.copy(T(x, 0, 4.2)); m.layers.set(1); scene.add(m); }
@@ -115,7 +119,7 @@ async function init(shell, { strip, map, getStage }) {
     g.rotation.order = 'YXZ'; g.rotation.y = ang; g.rotation.z = Math.PI / 2; g.position.copy(T(cx, cy, z)); scene.add(g);
     for (const s of [-1, 1]) {
       const px = cx + Math.cos(ang) * s * (len / 2 - 2), py = cy + Math.sin(ang) * s * (len / 2 - 2);
-      const p = new THREE.Mesh(new THREE.BoxGeometry(1, z - 2.4, 1), postM); p.position.copy(T(px, py, (z - 2.4) / 2)); scene.add(p);
+      addStatic(new THREE.BoxGeometry(1, z - 2.4, 1), postM, T(px, py, (z - 2.4) / 2));
     }
     targets.push({ kind, cx, cy, len, ang, z, mesh: g, n: 0 });
   }
@@ -126,6 +130,8 @@ async function init(shell, { strip, map, getStage }) {
     const m = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.6, LOADER_H, 18, 1, true), goalM.clone()); m.position.copy(T(x, y, LOADER_H / 2)); scene.add(m);
     targets.push({ kind: 'loader', cx: x, cy: y, z: LOADER_Z, mesh: m, n: 0 });
   }
+
+  for (const [mat, geos] of statics) scene.add(new THREE.Mesh(mergeGeometries(geos), mat));
 
   // ---------- blocks ----------
   const blockGeo = new THREE.CylinderGeometry(BLOCK / 2, BLOCK / 2, BLOCK, 6);
@@ -165,29 +171,10 @@ async function init(shell, { strip, map, getStage }) {
   // ---------- corner cameras ----------
   const rt = new THREE.WebGLRenderTarget(RW * 4, RH); rt.texture.colorSpace = THREE.SRGBColorSpace;
   const cams = CAMS.map(() => { const c = new THREE.PerspectiveCamera(2 * Math.atan(YR) * 180 / Math.PI, XR / YR, 0.5, 400); c.rotation.order = 'YXZ'; return c; });
-  const buf = new Uint8Array(RW * 4 * RH * 4);
-  // Lens lookup: strip pixel -> pinhole render pixel, plus the dark, yellow, hot-centred sensor look
-  // the report describes (p43). Built once.
-  const lut = new Int32Array(SW * SH), vig = new Float32Array(CAM.W * SH);
-  for (let v = 0; v < SH; v++) for (let u = 0; u < SW; u++) {
-    const ci = Math.floor(u / CAM.W), lu = u - ci * CAM.W;
-    const n = undistort((lu + 0.5 - CAM.cx) / CAM.fx, (v + 0.5 - CAM.cy) / CAM.fy);
-    let k = -1;
-    if (n && Math.abs(n[0]) < XR && Math.abs(n[1]) < YR) {
-      const rx = Math.floor((n[0] / XR * 0.5 + 0.5) * RW), ry = Math.floor((n[1] / YR * 0.5 + 0.5) * RH);
-      k = ((RH - 1 - ry) * RW * 4 + ci * RW + rx) * 4;
-    }
-    lut[v * SW + u] = k;
-  }
-  for (let v = 0; v < SH; v++) for (let u = 0; u < CAM.W; u++) {
-    const dx = (u - CAM.cx) / CAM.cx, dy = (v - CAM.cy) / CAM.cx;
-    vig[v * CAM.W + u] = 0.22 + 1.05 * Math.exp(-(dx * dx + dy * dy) / 0.16);
-  }
-  const raw = new Uint8ClampedArray(SW * SH * 4);
-  const noise = new Float32Array(SW * SH); for (let i = 0; i < noise.length; i++) noise[i] = (((i * 2654435761) >>> 0) / 4294967296 - 0.5) * 3;   // sensor noise, fixed
-
   function renderCams() {
-    const bg = scene.background; scene.background = null;
+    // The cameras never see the robot (layer 1); taking it out skips its CAD meshes four times over.
+    const bg = scene.background; scene.background = null; scene.remove(robot);
+    scene.updateMatrixWorld(); scene.matrixWorldAutoUpdate = false;
     renderer.setClearColor(0x5b5e62, 1);
     rt.scissorTest = true;
     CAMS.forEach((c, i) => {
@@ -199,38 +186,36 @@ async function init(shell, { strip, map, getStage }) {
       renderer.render(scene, P);
     });
     rt.scissorTest = false;
-    renderer.readRenderTargetPixels(rt, 0, 0, RW * 4, RH, buf);
-    renderer.setRenderTarget(null); scene.background = bg;
-    // Sensor: dark, yellow cast, bright radial hotspot.
-    for (let v = 0, j = 0; v < SH; v++) for (let u = 0; u < SW; u++, j += 4) {
-      const k = lut[v * SW + u];
-      if (k < 0) { raw[j] = raw[j + 1] = raw[j + 2] = 0; raw[j + 3] = 255; continue; }
-      const g = vig[v * CAM.W + (u % CAM.W)] * 0.55;
-      const nz = noise[v * SW + u]; raw[j] = buf[k] * g + nz; raw[j + 1] = buf[k + 1] * g * 0.84 + nz; raw[j + 2] = buf[k + 2] * g * 0.4 + nz; raw[j + 3] = 255;
-    }
+    renderer.setRenderTarget(null);
+    scene.matrixWorldAutoUpdate = true; scene.add(robot); scene.background = bg;
   }
+  // Lens, sensor look, illumination correction and colour classes run on the GPU (gpuPipe). The
+  // CPU reads back the 160x25 block means for the gray-world gains and the 1/8 image, blurs that,
+  // and reads back the corrected strip for the boxes. Without float render targets the same maths
+  // runs on the CPU (createPipe in percep.js).
+  const pipe = renderer.extensions.has('EXT_color_buffer_float') ? gpuPipe(THREE, renderer, rt) : cpuPipe(THREE, renderer, rt);
 
   // ---------- pipeline ----------
-  let R = null, wb = null, boxes = [], est = [];
-  function pipeline() {
-    const tp0 = performance.now();
+  let boxes = [], est = [], blocksSeen = [], busy = false;
+  async function pipeline() {
+    busy = true;
+    let t = performance.now(); const t0 = t;
     renderCams();
-    wb = whiteBalance(raw, SW, SH);
-    R = retinex(wb, SW, SH);
-    boxes = detect(R.out, SW, SH, CAM.W, 3);
+    const job = pipe.run(getStage()); let ms = performance.now() - t;
+    boxes = await job;
+    t = performance.now();
+    const ct = Math.cos(pose.th), st = Math.sin(pose.th);
     est = boxes.map(b => {
       const c = CAMS[b.cam], p = pixelToField((b.x0 + b.x1) / 2, b.y1, pose, c);
-      const ct = Math.cos(pose.th), st = Math.sin(pose.th);
       const from = { x: pose.x + ct * c.ox - st * c.oy, y: pose.y + st * c.ox + ct * c.oy };
-      if (!p || p.above) {
-        const n = p ? [p.xn] : [0], ang = pose.th + c.psi + Math.atan(-n[0]);
-        return { b, drop: true, from, dir: ang };
-      }
-      const drop = !onField(p);
-      return { b, drop, from, x: p.x, y: p.y, dir: Math.atan2(p.y - from.y, p.x - from.x) };
+      if (!p || p.above) return { b, drop: true, from, dir: pose.th + c.psi + Math.atan(-(p ? p.xn : 0)) };
+      return { b, drop: !onField(p), from, x: p.x, y: p.y, dir: Math.atan2(p.y - from.y, p.x - from.x) };
     });
+    blocksSeen = mergeEstimates(est.filter(e => !e.drop).map(e => ({ color: e.b.color, cam: e.b.cam, x: e.x, y: e.y })));
     drawStrip(); drawMap(); report();
-    if (params.has('shot')) root.dataset.debug = JSON.stringify({ ms: Math.round(performance.now() - tp0), est: est.map(e => e.drop ? ['drop', e.b.color, e.b.cam] : [e.b.color, e.b.cam, +e.x.toFixed(1), +e.y.toFixed(1), ...(() => { let bd = 1e9; for (const b of blocks) if (b.color === e.b.color) bd = Math.min(bd, Math.hypot(b.x - e.x, b.y - e.y)); return [+bd.toFixed(1)]; })()]) });
+    ms += performance.now() - t + pipe.t;       // main-thread time only; the GPU waits are not counted
+    performance.measure('mqp-update', { start: t0, duration: ms });
+    busy = false; needMain = true; kick();
   }
 
   // ---------- camera strip ----------
@@ -241,20 +226,13 @@ async function init(shell, { strip, map, getStage }) {
     if (g !== grid || !strip.dataset.l) { grid = g; strip.dataset.l = '1'; strip.width = grid ? CAM.W * 2 : SW; strip.height = grid ? SH * 2 : SH; strip.classList.toggle('mq-grid', grid); drawStrip(); }
   }
   const tileXY = (i) => grid ? [(i % 2) * CAM.W, Math.floor(i / 2) * SH] : [i * CAM.W, 0];
-  const img = new ImageData(CAM.W, SH);
+  let stripSeen = true;
+  new IntersectionObserver(es => { stripSeen = es.some(e => e.isIntersecting); if (stripSeen) drawStrip(); }).observe(strip);
   function drawStrip() {
-    if (!R) return;
-    const st = getStage();
-    for (let i = 0; i < 4; i++) {
-      const d = img.data;
-      for (let v = 0; v < SH; v++) for (let u = 0; u < CAM.W; u++) {
-        const s = v * SW + i * CAM.W + u, j = (v * CAM.W + u) * 4, k = s * 4;
-        if (st === 'illum') { const l = R.L[s]; d[j] = d[j + 1] = d[j + 2] = l; }
-        else { const src = st === 'raw' ? raw : st === 'wb' ? wb : R.out; d[j] = src[k]; d[j + 1] = src[k + 1]; d[j + 2] = src[k + 2]; }
-        d[j + 3] = 255;
-      }
-      const [ox, oy] = tileXY(i); sctx.putImageData(img, ox, oy);
-    }
+    if (!pipe.ready || !stripSeen) return;
+    const img = pipe.image(getStage());
+    if (!grid) sctx.putImageData(img, 0, 0);
+    else for (let i = 0; i < 4; i++) { const [ox, oy] = tileXY(i); sctx.putImageData(img, ox - i * CAM.W, oy, i * CAM.W, 0, CAM.W, SH); }
     sctx.lineWidth = grid ? 2 : 1.5;
     for (const e of est) {
       const [ox, oy] = tileXY(e.b.cam), b = e.b;
@@ -321,10 +299,13 @@ async function init(shell, { strip, map, getStage }) {
         const k = 5; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(X(ex) - k, Y(ey) - k); ctx.lineTo(X(ex) + k, Y(ey) + k); ctx.moveTo(X(ex) + k, Y(ey) - k); ctx.lineTo(X(ex) - k, Y(ey) + k); ctx.stroke();
         continue;
       }
+    }
+    // one dot per block: detections of the same block from overlapping cameras are merged
+    for (const g of blocksSeen) {
       let best = null, bd = 18;
-      for (const b of blocks) { if (b.in || b.color !== e.b.color) continue; const dd = Math.hypot(b.x - e.x, b.y - e.y); if (dd < bd) { bd = dd; best = b; } }
-      if (best) { ctx.strokeStyle = ink; ctx.lineWidth = 1.25; ctx.beginPath(); ctx.moveTo(X(best.x), Y(best.y)); ctx.lineTo(X(e.x), Y(e.y)); ctx.stroke(); }
-      ctx.fillStyle = c; ctx.beginPath(); ctx.arc(X(e.x), Y(e.y), 3.2, 0, 7); ctx.fill();
+      for (const b of blocks) { if (b.in || b.color !== g.color) continue; const dd = Math.hypot(b.x - g.x, b.y - g.y); if (dd < bd) { bd = dd; best = b; } }
+      if (best) { ctx.strokeStyle = ink; ctx.lineWidth = 1.25; ctx.beginPath(); ctx.moveTo(X(best.x), Y(best.y)); ctx.lineTo(X(g.x), Y(g.y)); ctx.stroke(); }
+      ctx.fillStyle = col(g.color); ctx.beginPath(); ctx.arc(X(g.x), Y(g.y), 3.2, 0, 7); ctx.fill();
     }
   }
   function rayExit(p, a) {
@@ -335,8 +316,8 @@ async function init(shell, { strip, map, getStage }) {
   }
 
   function report() {
-    const on = est.filter(e => !e.drop).length, off = est.length - on;
-    shell.say(`${on} detection${on === 1 ? '' : 's'} on the floor.` + (off ? ` ${off} landed off the field and ${off === 1 ? 'was' : 'were'} dropped.` : ''));
+    const on = blocksSeen.length, off = est.filter(e => e.drop).length;
+    shell.say(`${on} block${on === 1 ? '' : 's'} found on the floor.` + (off ? ` ${off} detection${off === 1 ? '' : 's'} landed off the field and ${off === 1 ? 'was' : 'were'} dropped.` : ''));
   }
 
   // ---------- scheduling: nothing runs until something changes ----------
@@ -356,7 +337,8 @@ async function init(shell, { strip, map, getStage }) {
     } else lastT = 0;
     if (needPipe) {
       const now = performance.now();
-      if (now - lastPipe >= 120) { needPipe = false; lastPipe = now; pipeline(); needMain = true; }
+      if (busy) { /* the running update re-kicks when it lands */ }
+      else if (now - lastPipe >= 120) { needPipe = false; lastPipe = now; pipeline(); }
       else if (!pipeTimer) pipeTimer = setTimeout(() => { pipeTimer = 0; kick(); }, 120 - (now - lastPipe));
     }
     if (needMain) { needMain = false; scene.background = new THREE.Color(frame()); renderer.render(scene, cam); }
@@ -452,10 +434,6 @@ async function init(shell, { strip, map, getStage }) {
   new ResizeObserver(() => { fit(); layoutStrip(); drawMap(); }).observe(view);
   new ResizeObserver(() => { layoutStrip(); drawMap(); }).observe(shell.col);
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { needMain = true; drawMap(); kick(); });
-  if (params.has('goaltest')) {          // screenshot check only: two blocks lifted into a goal and a loader
-    const put = (b, t, x) => { b.in = t; t.n++; b.x = t.kind === 'loader' ? t.cx : x; b.y = t.cy; b.z = t.z; placeBlock(b); };
-    put(blocks[1], targets[0], -8); put(blocks[3], targets.find(t => t.kind === 'loader'));
-  }
   fit(); layoutStrip(); shell.current('drag');
   wantPipe();
 
@@ -469,6 +447,158 @@ async function init(shell, { strip, map, getStage }) {
       for (const t of targets) t.n = 0;
       blocks.forEach((b, i) => { b.x = START[i][0]; b.y = START[i][1]; b.z = BLOCK / 2; b.in = null; placeBlock(b); });
       needMain = true; wantPipe(); shell.current('drag');
+    },
+  };
+}
+
+// ---------- GPU pipeline ----------
+// Passes, each a full-screen quad into its own target:
+//   sense:   strip pixel -> undistorted ray -> pinhole render texel; dark, yellow, hot-centred sensor
+//   means:   8x8 block means of the sensor image (160x25, float), read back
+//   correct: balanced uint8 frame / L * beta, clipped; colour class in alpha; read back
+//   flags:   which 8x8 blocks hold any class pixel, so the box search skips the rest
+// Readbacks are asynchronous, so the main thread never waits on the GPU.
+// L itself (gray, 1/8, Gaussian) is built on the CPU from the means, as in createPipe.
+const VS = 'void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }';
+const SENSE = `precision highp float; precision highp int;
+uniform sampler2D pin; uniform float fx, fy, cx, cy, k1, k2, XR, YR; uniform int RW, RH, TW, W;
+float s8(float c) { c = clamp(c, 0.0, 1.0); return c <= 0.0031308 ? c * 12.92 : 1.055 * pow(c, 1.0 / 2.4) - 0.055; }
+void main() {
+  ivec2 p = ivec2(gl_FragCoord.xy); int tile = p.x / TW, lu = p.x - tile * TW, v = p.y;
+  float xd = (float(lu) + 0.5 - cx) / fx, yd = (float(v) + 0.5 - cy) / fy, rd = length(vec2(xd, yd)), s = 1.0;
+  bool ok = true;
+  if (rd > 1e-9) {
+    float r = rd;
+    for (int i = 0; i < 12; i++) { float r2 = r * r, df = 1.0 + 3.0 * k1 * r2 + 5.0 * k2 * r2 * r2; if (df <= 1e-6) { ok = false; break; } r -= (r * (1.0 + k1 * r2 + k2 * r2 * r2) - rd) / df; }
+    if (!(r > 0.0) || 1.0 + 3.0 * k1 * r * r + 5.0 * k2 * r * r * r * r <= 0.0) ok = false;
+    s = r / rd;
+  }
+  float xu = xd * s, yu = yd * s; vec3 c = vec3(0.0);
+  if (ok && abs(xu) < XR && abs(yu) < YR) {
+    int rx = int(floor((xu / XR * 0.5 + 0.5) * float(RW))), ry = int(floor((yu / YR * 0.5 + 0.5) * float(RH)));
+    vec3 t = texelFetch(pin, ivec2(tile * RW + rx, RH - 1 - ry), 0).rgb;
+    vec3 b8 = floor(vec3(s8(t.r), s8(t.g), s8(t.b)) * 255.0 + 0.5);
+    float dx = (float(lu) - cx) / cx, dy = (float(v) - cy) / cx, g = (0.22 + 1.05 * exp(-(dx * dx + dy * dy) / 0.16)) * 0.55;
+    uint h = (uint(v) * uint(W) + uint(p.x)) * 2654435761u; float nz = (float(h) / 4294967296.0 - 0.5) * 3.0;
+    c = (b8 * g * vec3(1.0, 0.84, 0.4) + nz) / 255.0;
+  }
+  gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
+}`;
+const MEANS = `precision highp float; uniform sampler2D raw;
+void main() { ivec2 p = ivec2(gl_FragCoord.xy) * 8; vec3 a = vec3(0.0);
+  for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) a += floor(texelFetch(raw, p + ivec2(x, y), 0).rgb * 255.0 + 0.5);
+  gl_FragColor = vec4(a / 64.0, 1.0); }`;
+const CORRECT = `precision highp float; precision highp int;
+uniform sampler2D raw, Ls; uniform vec3 k; uniform float beta; uniform int mode, sw, sh;
+float Lat(ivec2 p) {
+  float fx = clamp((float(p.x) + 0.5) / 8.0 - 0.5, 0.0, float(sw - 1)), fy = clamp((float(p.y) + 0.5) / 8.0 - 0.5, 0.0, float(sh - 1));
+  int x0 = int(floor(fx)), y0 = int(floor(fy)), x1 = min(sw - 1, x0 + 1), y1 = min(sh - 1, y0 + 1); float tx = fx - float(x0), ty = fy - float(y0);
+  float a = texelFetch(Ls, ivec2(x0, y0), 0).r, b = texelFetch(Ls, ivec2(x1, y0), 0).r, c = texelFetch(Ls, ivec2(x0, y1), 0).r, d = texelFetch(Ls, ivec2(x1, y1), 0).r;
+  return max(1.0, (a * (1.0 - tx) + b * tx) * (1.0 - ty) + (c * (1.0 - tx) + d * tx) * ty);
+}
+void main() {
+  ivec2 p = ivec2(gl_FragCoord.xy); vec3 r8 = floor(texelFetch(raw, p, 0).rgb * 255.0 + 0.5), w = min(vec3(255.0), floor(r8 * k + 0.5));
+  if (mode == 1) { gl_FragColor = vec4(r8 / 255.0, 1.0); return; }
+  if (mode == 2) { gl_FragColor = vec4(w / 255.0, 1.0); return; }
+  float L = Lat(p);
+  if (mode == 3) { gl_FragColor = vec4(vec3(min(L, 255.0)) / 255.0, 1.0); return; }
+  vec3 o = w * beta / L;
+  float cl = (o.r > 90.0 && o.r - max(o.g, o.b) > 55.0) ? 1.0 : (o.b > 90.0 && o.b - max(o.r, o.g) > 40.0) ? 2.0 : 0.0;
+  gl_FragColor = vec4(min(o, vec3(255.0)) / 255.0, (255.0 - cl) / 255.0);   // alpha: 255 none, 254 red, 253 blue
+}`;
+const FLAGS = `precision highp float; uniform sampler2D outT;
+void main() { ivec2 p = ivec2(gl_FragCoord.xy) * 8; float any = 0.0;
+  for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) if (texelFetch(outT, p + ivec2(x, y), 0).a < 0.998) any = 1.0;
+  gl_FragColor = vec4(any, 0.0, 0.0, 1.0); }`;
+
+// Separable Gaussian on the 1/8 image, edge-clamped through precomputed tap indices.
+function blurSmall(small, tmp, Ls, sw, sh, k, r) {
+  const n = 2 * r + 1, ix = blurSmall.ix?.[sw] || ((blurSmall.ix ||= {})[sw] = Int32Array.from({ length: sw * n }, (_, q) => Math.min(sw - 1, Math.max(0, ((q / n) | 0) + (q % n) - r))));
+  const iy = blurSmall.iy?.[sh] || ((blurSmall.iy ||= {})[sh] = Int32Array.from({ length: sh * n }, (_, q) => Math.min(sh - 1, Math.max(0, ((q / n) | 0) + (q % n) - r)) * sw));
+  for (let y = 0; y < sh; y++) { const row = y * sw; for (let x = 0; x < sw; x++) { let a = 0; const o = x * n; for (let t = 0; t < n; t++) a += small[row + ix[o + t]] * k[t]; tmp[row + x] = a; } }
+  for (let y = 0; y < sh; y++) { const o = y * n; for (let x = 0; x < sw; x++) { let a = 0; for (let t = 0; t < n; t++) a += tmp[iy[o + t] + x] * k[t]; Ls[y * sw + x] = a; } }
+}
+function gauss(sigma) { const r = Math.ceil(sigma * 3), k = new Float32Array(2 * r + 1); let s = 0; for (let i = -r; i <= r; i++) s += (k[i + r] = Math.exp(-(i * i) / (2 * sigma * sigma))); for (let i = 0; i < k.length; i++) k[i] /= s; return { k, r }; }
+
+function gpuPipe(THREE, renderer, pinRT) {
+  const sw = SW / 8, sh = SH / 8, M = sw * sh;
+  const tgt = (w, h, type = THREE.UnsignedByteType) => new THREE.WebGLRenderTarget(w, h, { type, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: false });
+  const rawRT = tgt(SW, SH), meanRT = tgt(sw, sh, THREE.FloatType), outRT = tgt(SW, SH), stageRT = tgt(SW, SH), flagRT = tgt(sw, sh);
+  const LsTex = new THREE.DataTexture(new Float32Array(M), sw, sh, THREE.RedFormat, THREE.FloatType); LsTex.minFilter = LsTex.magFilter = THREE.NearestFilter;
+  const mat = (fs, uniforms) => new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: fs, uniforms, depthTest: false, depthWrite: false, blending: THREE.NoBlending });
+  const sense = mat(SENSE, { pin: { value: pinRT.texture }, fx: { value: CAM.fx }, fy: { value: CAM.fy }, cx: { value: CAM.cx }, cy: { value: CAM.cy }, k1: { value: CAM.k1 }, k2: { value: CAM.k2 },
+    XR: { value: XR }, YR: { value: YR }, RW: { value: RW }, RH: { value: RH }, TW: { value: CAM.W }, W: { value: SW } });
+  const means = mat(MEANS, { raw: { value: rawRT.texture } });
+  const correct = mat(CORRECT, { raw: { value: rawRT.texture }, Ls: { value: LsTex }, k: { value: new THREE.Vector3(1, 1, 1) }, beta: { value: BETA }, mode: { value: 0 }, sw: { value: sw }, sh: { value: sh } });
+  const flagsM = mat(FLAGS, { outT: { value: outRT.texture } });
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), sense); quad.frustumCulled = false;
+  const qs = new THREE.Scene(); qs.add(quad); const qc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const pass = (m, t) => { quad.material = m; renderer.setRenderTarget(t); renderer.render(qs, qc); };
+  const mbuf = new Float32Array(M * 4), small = new Float32Array(M), tmp = new Float32Array(M), Ls = LsTex.image.data, G = gauss(SIGMA);
+  const out = new ImageData(SW, SH), stage = new ImageData(SW, SH), seen = new Uint8Array(SW * SH), stack = new Int32Array(SW * SH), fbuf = new Uint8Array(M * 4);
+  const outBytes = new Uint8Array(out.data.buffer), stageBytes = new Uint8Array(stage.data.buffer);
+  let stageFor = null;
+  const P = {
+    ready: false,
+    t: 0,                                                // main-thread time of the last run, ms
+    async run(st = 'out') {
+      let t = performance.now();
+      pass(sense, rawRT); pass(means, meanRT); renderer.setRenderTarget(null);
+      P.t = performance.now() - t;
+      await renderer.readRenderTargetPixelsAsync(meanRT, 0, 0, sw, sh, mbuf);
+      t = performance.now();
+      let tR = 0, tG = 0, tB = 0; for (let b = 0; b < M; b++) { tR += mbuf[b * 4]; tG += mbuf[b * 4 + 1]; tB += mbuf[b * 4 + 2]; }
+      const m = (tR + tG + tB) / 3, kr = m / (tR || 1), kg = m / (tG || 1), kb = m / (tB || 1);
+      for (let b = 0; b < M; b++) small[b] = 0.299 * kr * mbuf[b * 4] + 0.587 * kg * mbuf[b * 4 + 1] + 0.114 * kb * mbuf[b * 4 + 2];
+      blurSmall(small, tmp, Ls, sw, sh, G.k, G.r); LsTex.needsUpdate = true;
+      correct.uniforms.k.value.set(kr, kg, kb); correct.uniforms.mode.value = 0; pass(correct, outRT); pass(flagsM, flagRT);
+      const reads = [renderer.readRenderTargetPixelsAsync(outRT, 0, 0, SW, SH, outBytes), renderer.readRenderTargetPixelsAsync(flagRT, 0, 0, sw, sh, fbuf)];
+      if (st !== 'out') {   // the stage on screen comes back with the same batch
+        correct.uniforms.mode.value = st === 'raw' ? 1 : st === 'wb' ? 2 : 3; pass(correct, stageRT);
+        reads.push(renderer.readRenderTargetPixelsAsync(stageRT, 0, 0, SW, SH, stageBytes));
+      }
+      renderer.setRenderTarget(null);
+      P.t += performance.now() - t;
+      await Promise.all(reads);
+      t = performance.now();
+      const boxes = boxesFromAlpha(outBytes, fbuf, seen, stack, SW, SH, CAM.W, 8, 3);
+      P.ready = true; stageFor = st === 'out' ? null : st;
+      P.t += performance.now() - t;
+      return boxes;
+    },
+    // The stage on screen; only Corrected comes free with the update.
+    image(st) {
+      if (st === 'out') return out;
+      if (stageFor !== st) {
+        correct.uniforms.mode.value = st === 'raw' ? 1 : st === 'wb' ? 2 : 3; pass(correct, stageRT);
+        renderer.readRenderTargetPixels(stageRT, 0, 0, SW, SH, stageBytes); renderer.setRenderTarget(null); stageFor = st;
+      }
+      return stage;
+    },
+  };
+  return P;
+}
+
+// Same steps on the CPU, for devices without float render targets.
+function cpuPipe(THREE, renderer, pinRT) {
+  const lut = new Int32Array(SW * SH), vg = new Float32Array(CAM.W * SH), noise = new Float32Array(SW * SH), buf = new Uint8Array(RW * 4 * RH * 4);
+  for (let v = 0; v < SH; v++) for (let u = 0; u < SW; u++) {
+    const ci = Math.floor(u / CAM.W), lu = u - ci * CAM.W, n = undistort((lu + 0.5 - CAM.cx) / CAM.fx, (v + 0.5 - CAM.cy) / CAM.fy);
+    let k = -1;
+    if (n && Math.abs(n[0]) < XR && Math.abs(n[1]) < YR) k = ((RH - 1 - Math.floor((n[1] / YR * 0.5 + 0.5) * RH)) * RW * 4 + ci * RW + Math.floor((n[0] / XR * 0.5 + 0.5) * RW)) * 4;
+    lut[v * SW + u] = k; noise[v * SW + u] = ((((v * SW + u) * 2654435761) >>> 0) / 4294967296 - 0.5) * 3;
+  }
+  for (let v = 0; v < SH; v++) for (let u = 0; u < CAM.W; u++) { const dx = (u - CAM.cx) / CAM.cx, dy = (v - CAM.cy) / CAM.cx; vg[v * CAM.W + u] = (0.22 + 1.05 * Math.exp(-(dx * dx + dy * dy) / 0.16)) * 0.55; }
+  const p = createPipe({ W: SW, H: SH }), out = new ImageData(p.out, SW, SH), stage = new ImageData(SW, SH);
+  return {
+    ready: false,
+    t: 0,
+    async run() { const t = performance.now(); renderer.readRenderTargetPixels(pinRT, 0, 0, RW * 4, RH, buf); renderer.setRenderTarget(null); p.sense(buf, lut, vg, noise, [1, 0.84, 0.4]); this.ready = true; const b = p.correct(); this.t = performance.now() - t; return b; },
+    image(st) {
+      if (st === 'out') return out;
+      const d = stage.data;
+      if (st === 'raw') d.set(p.raw); else if (st === 'wb') p.balanced(d); else for (let i = 0; i < SW * SH; i++) { d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = p.lmap[i]; d[i * 4 + 3] = 255; }
+      return stage;
     },
   };
 }
