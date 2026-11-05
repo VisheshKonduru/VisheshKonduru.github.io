@@ -1,4 +1,4 @@
-// Feedback form in a dialog. Posts to FormSubmit, which emails the message to the site owner.
+// Feedback form in a dialog. Posts to Web3Forms, which emails the message to the site owner.
 // Without JS the button stays a plain mailto link.
 (function () {
   var btn = document.querySelector('.feedback');
@@ -16,7 +16,7 @@
     '<input id="fb-name" name="name" autocomplete="name">' +
     '<label for="fb-email">Email, if you want a reply <span>(optional)</span></label>' +
     '<input id="fb-email" name="email" type="email" autocomplete="email">' +
-    '<input class="fb-hp" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true">' +
+    '<input class="fb-hp" name="botcheck" tabindex="-1" autocomplete="off" aria-hidden="true">' +
     '<p class="fb-status" role="status"></p>' +
     '<div class="fb-actions"><button type="button" class="fb-cancel">Close</button><button type="submit" class="fb-send">Send</button></div>' +
     '</form>';
@@ -35,12 +35,13 @@
     if (!msg.value.trim()) { st.textContent = 'Write a message first.'; msg.focus(); return; }
     var em = f.email.value.trim();
     if (em && !f.email.checkValidity()) { st.textContent = 'That email address doesn’t look right.'; f.email.focus(); return; }
-    if (f._honey.value) { d.close(); return; }
+    if (f.botcheck.value) { d.close(); return; }
     send.disabled = true; st.textContent = 'Sending…';
-    var body = { message: msg.value.trim(), name: f.name.value.trim(), email: em, page: location.pathname,
-      _subject: 'Portfolio feedback', _template: 'table', _captcha: 'false' };
-    fetch('https://formsubmit.co/ajax/' + to, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(body)
+    var body = { access_key: '1bcc05fc-a3d6-4466-aae8-7e0c4a1c4355', subject: 'Portfolio feedback',
+      from_name: 'Portfolio site', message: msg.value.trim(), name: f.name.value.trim(), email: em, page: location.pathname };
+    var fd = new FormData(); for (var k in body) fd.append(k, body[k]);
+    fetch('https://api.web3forms.com/submit', {
+      method: 'POST', body: fd
     }).then(function (r) { return r.json().then(function (j) { return r.ok && String(j.success) === 'true'; }); })
       .then(function (ok) {
         if (!ok) throw 0;
