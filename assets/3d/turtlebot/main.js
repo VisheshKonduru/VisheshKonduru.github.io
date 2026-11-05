@@ -528,7 +528,9 @@ export function start(shell) {
 
   // ---- loop, visibility, adaptive quality ----------------------------------------------------
   let visible = true, needsRender = true, raf = 0, last = performance.now(), acc = 0, lastStatus = 0;
-  controls.addEventListener('change', () => { needsRender = true; kick(); });
+  // controls.update() inside frame() also fires 'change'; scheduling a second loop from there froze the sim
+  let inFrame = false;
+  controls.addEventListener('change', () => { needsRender = true; if (!inFrame) kick(); });
   new IntersectionObserver(es => { visible = es[0].isIntersecting; kick(); }).observe(stage);
   document.addEventListener('visibilitychange', kick);
   const resize = () => {
@@ -559,8 +561,9 @@ export function start(shell) {
     raf = 0;
     if (!visible || document.hidden) return;
     const t0 = performance.now();
-    const interval = now - last, dt = Math.min(0.1, interval / 1000); last = now;
-    const moving = controls.update();
+    // clamp: a frame timestamp can precede `last` if kick() ran late in the previous frame
+    const interval = Math.max(0, now - last), dt = Math.min(0.1, interval / 1000); last = now;
+    inFrame = true; const moving = controls.update(); inFrame = false;
     if (playing) {
       acc += dt;
       const h = 1 / 60, w = W();
@@ -585,7 +588,7 @@ export function start(shell) {
         document.body.appendChild(pre);
       }
     }
-    if (playing || moving || needsRender) raf = requestAnimationFrame(frame);
+    if ((playing || moving || needsRender) && !raf) raf = requestAnimationFrame(frame);
   }
 
   // ---- go ------------------------------------------------------------------------------------
