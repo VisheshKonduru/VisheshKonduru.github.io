@@ -434,7 +434,6 @@ dialog.lb img { max-width: calc(100vw - 48px); max-height: calc(100vh - 96px); w
 .fb-actions button:disabled { opacity: .5; cursor: default; }
 @media (prefers-reduced-motion: no-preference) { .fb[open] { animation: fb-in .18s ease-out; } @keyframes fb-in { from { opacity: 0; transform: translateY(8px); } } }
 /* On phones the box sits at the end of the page instead of over the demo controls. */
-@media (max-width: 720px) { .wip-box { position: static; width: max-content; margin: 0 var(--pad) 16px auto; } }
 
 /* ---------- lite mode ---------- */
 .lite-toggle { font: inherit; font-size: 16px; color: var(--ink-2); background: none; border: 0; padding: 0; margin: -12px 0; min-height: 44px; cursor: pointer; }
@@ -480,3 +479,33 @@ body:has(.hero) .site-head.solid .lite-toggle { color: var(--ink-2); }
 .robot3d canvas { display: block; width: 100%; height: 100%; outline-offset: -2px; }
 .act-inner > .act-more > .robot-fig { flex: 1 1 360px; max-width: 560px; }
 @media (max-width: 720px) { .chapter-head .top-links a { white-space: normal; padding: 10px 16px; max-width: 100%; } }
+
+/* ---------- phone layout ---------- */
+@media (max-width: 720px) {
+  .head-inner { padding-top: 10px; padding-bottom: 10px; gap: 4px 16px; }
+  .site-name { font-size: 18px; }
+  .site-nav { gap: 4px 18px; font-size: 15px; }
+  .site-nav a, .lite-toggle { font-size: 15px; }
+  /* hero: show the reel uncropped at its own 16:9 under the header, text below */
+  body:has(.hero) .site-head { position: sticky; background: #0d0e10; }
+  .hero { height: auto; min-height: 0; }
+  .hero video { position: relative; inset: auto; display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+  .hero-shade { display: none; }
+  .hero-body { height: auto; padding: 28px 16px 40px; }
+  .hero-name { font-size: 40px; margin-bottom: 14px; }
+  .hero-block { flex-direction: column; align-items: center; gap: 10px; }
+  .hero-block > div { font-size: 16px; line-height: 1.4; }
+  .hero-links { margin-top: 18px; gap: 4px 20px; }
+  .hero-live { font-size: 16px; }
+  /* WIP and Feedback stay visible, small, bottom right */
+  .wip-box { position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); margin: 0; width: auto; flex-direction: row; align-items: center; gap: 6px; }
+  .wip { padding: 6px 10px; font-size: 12px; }
+  .feedback { min-height: 36px; padding: 0 12px; font-size: 13px; }
+  body { font-size: 16px; }
+  section { padding: 40px 0; }
+  .section-head { margin-bottom: 24px; }
+  .section-head h2 { font-size: 34px; }
+  .crumb { display: none; }
+  .chapter-head h1 { font-size: 30px; line-height: 1.15; }
+  .head-meta, .head-skills { font-size: 15px; }
+}
