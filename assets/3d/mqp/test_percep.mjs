@@ -1,6 +1,6 @@
 // node assets/3d/mqp/test_percep.mjs
 import assert from 'node:assert/strict';
-import { CAM, CAMS, distort, undistort, fieldToPixel, pixelToField, retinex, detect, whiteBalance, BETA, createPipe, mergeEstimates, boxesFromAlpha } from './percep.js';
+import { CAM, CAMS, distort, undistort, fieldToPixel, pixelToField, retinex, detect, senderCorrect, BETA, SIGMA, TINT, gaussKernel, createPipe, mergeEstimates, boxesFromAlpha } from './percep.js';
 
 let n = 0; const ok = (m) => { n++; console.log('ok', m); };
 
@@ -57,15 +57,25 @@ ok(`ground-plane projection round trip, ${tried} points, worst ${worst.toExponen
   const raw = [], cor = [];
   for (let y = 24; y < h - 24; y++) for (let x = 40; x < w - 40; x++) { const j = (y * w + x) * 4; raw.push(img[j]); cor.push(R.out[j]); }
   const spread = (a) => a.reduce((m, v) => Math.max(m, v), -1e9) - a.reduce((m, v) => Math.min(m, v), 1e9), mean = cor.reduce((s, v) => s + v, 0) / cor.length;
-  assert.ok(spread(cor) < spread(raw) / 3, `hotspot flattened ${spread(raw)} -> ${spread(cor)}`);
+  assert.ok(spread(cor) < spread(raw) * 0.6, `hotspot flattened ${spread(raw)} -> ${spread(cor)}`);
   assert.ok(Math.abs(mean - BETA) < 12, `brought to beta, mean ${mean.toFixed(1)}`);
   ok(`retinex flattens a hotspot (spread ${spread(raw)} -> ${spread(cor)}, mean ${mean.toFixed(0)})`);
   // clipping to uint8
   const hot = new Uint8ClampedArray(64 * 16 * 4).fill(255); hot[0] = 0;
   const H = retinex(hot, 64, 16); assert.ok(H.out.every(v => v >= 0 && v <= 255));
   ok('output clipped to [0, 255]');
-  const wb = whiteBalance(new Uint8ClampedArray([200, 150, 60, 255, 100, 80, 30, 255]), 2, 1);
-  assert.ok(Math.abs(wb[0] - wb[2]) < 40 && Math.abs(wb[0] - wb[1]) < 20); ok('gray-world white balance');
+  // stream_raw.py: convertScaleAbs(1.3, 30) rounds, then B x1.2, G x0.95, R x0.90 truncate.
+  const sc = senderCorrect(new Uint8ClampedArray([100, 100, 100, 255, 200, 10, 250, 255]), 2, 1);
+  assert.deepEqual([...sc.slice(0, 3)], [144, 152, 192]);      // 160 * 0.90, 0.95, 1.2
+  assert.deepEqual([...sc.slice(4, 7)], [255 * 0.9 | 0, 43 * 0.95 | 0, 255]);
+  ok('sender correction matches stream_raw.py');
+  // IE.py: GaussianBlur((31, 31), 0) -> sigma 5.0, radius 15
+  const G = gaussKernel(); assert.equal(SIGMA, 5); assert.equal(G.r, 15); assert.ok(Math.abs(G.k.reduce((a, b) => a + b, 0) - 1) < 1e-6);
+  ok('31x31 kernel, sigma 5');
+  // The demo's sensor tint is roughly undone by the sender: a neutral grey comes out near neutral.
+  const grey = new Uint8ClampedArray([50 * TINT[0], 50 * TINT[1], 50 * TINT[2], 255]), n2 = senderCorrect(grey, 1, 1);
+  assert.ok(grey[2] < grey[0] - 15, 'raw is yellow (low blue)'); assert.ok(Math.max(n2[0], n2[1], n2[2]) - Math.min(n2[0], n2[1], n2[2]) < 12, `balanced near neutral ${[...n2.slice(0, 3)]}`);
+  ok(`sensor tint neutralised by the sender (${[...grey.slice(0, 3)]} -> ${[...n2.slice(0, 3)]})`);
 }
 
 // Detector finds a red and a blue patch, in the right tiles.
@@ -85,15 +95,15 @@ ok(`ground-plane projection round trip, ${tried} points, worst ${worst.toExponen
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const lx = (x % 320 - 160) / 160, ly = (y - 100) / 160, g = 0.22 + 1.05 * Math.exp(-(lx * lx + ly * ly) / 0.16), j = (y * w + x) * 4;
     let c = [140, 140, 140]; if ((x % 97) < 6 && (y % 53) < 5) c = (x / 97 | 0) % 2 ? [200, 30, 25] : [30, 60, 210];
-    img[j] = c[0] * g * 0.55; img[j + 1] = c[1] * g * 0.55 * 0.84; img[j + 2] = c[2] * g * 0.55 * 0.4; img[j + 3] = 255;
+    img[j] = c[0] * g * 0.55 * TINT[0]; img[j + 1] = c[1] * g * 0.55 * TINT[1]; img[j + 2] = c[2] * g * 0.55 * TINT[2]; img[j + 3] = 255;
   }
-  const R = retinex(whiteBalance(img, w, h), w, h), ref = detect(R.out, w, h, 320);
+  const R = retinex(senderCorrect(img, w, h), w, h), ref = detect(R.out, w, h, 320);
   const P = createPipe({ W: w, H: h }); P.load(img); const fast = P.correct();
   let worst = 0; for (let j = 0; j < R.out.length; j += 4) for (let c = 0; c < 3; c++) worst = Math.max(worst, Math.abs(R.out[j + c] - P.out[j + c]));
   let sum = 0; for (let j = 0; j < R.out.length; j++) sum += Math.abs(R.out[j] - P.out[j]); const mean = sum / (R.out.length * 0.75);
-  assert.ok(worst <= 4 && mean < 1, `fused vs reference, worst ${worst}, mean ${mean}`);
+  assert.ok(worst <= 1 && mean < 0.05, `fused vs reference, worst ${worst}, mean ${mean}`);
   assert.equal(fast.length, ref.length);
-  ok(`fused pipeline matches reference (mean diff ${mean.toFixed(2)}, max ${worst} levels in dark corners, ${fast.length} boxes both)`);
+  ok(`fused pipeline matches reference (max diff ${worst} level, ${fast.length} boxes both)`);
   const g = mergeEstimates([{ color: 'red', x: 0, y: 0, cam: 0 }, { color: 'red', x: 2, y: 1, cam: 1 }, { color: 'blue', x: 1, y: 0, cam: 1 }, { color: 'red', x: 30, y: 0, cam: 0 }]);
   assert.equal(g.length, 3); ok('overlapping detections merge per block');
   // GPU readback form: class in alpha, 8x8 flags. Same boxes as the full scan.

@@ -85,78 +85,83 @@ export function pixelToField(u, v, pose, cam, c = CAM, h = MOUNT_H, pitch = PITC
 }
 export const onField = (p, m = 0) => Math.abs(p.x) <= HALF - m && Math.abs(p.y) <= HALF - m;
 
-// ---------- illumination correction (report p43-44) ----------
-// Gaussian sigma is not in the report; a demo value in downscaled pixels.
-export const BETA = 120, SIGMA = 3;
+// ---------- image correction (report p43-44; code: Autonomous-VEXU/camera_stream) ----------
+// Two stages, as on the robot:
+//   sender  (stream_raw.py, on the Jetson Nano): convertScaleAbs(alpha 1.3, beta 30), then
+//           B x1.2, G x0.95, R x0.90, each clipped to [0, 255] and written back into uint8 (truncates).
+//   receiver (IE.py): gray -> resize 1/8 (INTER_LINEAR) -> GaussianBlur 31x31, sigmaX 0 ->
+//           resize back (INTER_LINEAR) -> clip [1, 255] -> frame / L * 120 -> clip, astype uint8.
+// OpenCV picks sigma from the kernel when sigmaX is 0: 0.3 * ((31 - 1) * 0.5 - 1) + 0.8 = 5.0.
+export const BETA = 120, KSIZE = 31, SIGMA = 0.3 * ((KSIZE - 1) * 0.5 - 1) + 0.8;
+export const SEND = { alpha: 1.3, beta: 30, gain: [0.90, 0.95, 1.2] };   // gain in R, G, B order
+// Demo sensor look: dark with a yellow cast (low blue), set so the sender's correction above brings
+// a grey near the sensor's typical level (about 50) back to grey: (x * 1.3 + 30) * gain equal per channel.
+export const TINT = [1, 0.92, 0.65];
 
-function blur1(src, w, h, sigma, horiz) {
-  const r = Math.ceil(sigma * 3), k = new Float32Array(2 * r + 1); let s = 0;
-  for (let i = -r; i <= r; i++) s += (k[i + r] = Math.exp(-(i * i) / (2 * sigma * sigma)));
-  for (let i = 0; i < k.length; i++) k[i] /= s;
-  const out = new Float32Array(w * h);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    let a = 0;
-    for (let i = -r; i <= r; i++) {
-      const xx = horiz ? Math.min(w - 1, Math.max(0, x + i)) : x, yy = horiz ? y : Math.min(h - 1, Math.max(0, y + i));
-      a += src[yy * w + xx] * k[i + r];
-    }
-    out[y * w + x] = a;
-  }
+// stream_raw.py, one channel value: convertScaleAbs rounds and saturates; the gain product truncates.
+export const sendCh = (x, c) => { const v = Math.min(255, Math.round(Math.abs(x * SEND.alpha + SEND.beta))); return Math.min(255, Math.floor(v * SEND.gain[c])); };
+export function senderCorrect(rgba, w, h) {
+  const out = new Uint8ClampedArray(w * h * 4);
+  for (let j = 0; j < out.length; j += 4) { out[j] = sendCh(rgba[j], 0); out[j + 1] = sendCh(rgba[j + 1], 1); out[j + 2] = sendCh(rgba[j + 2], 2); out[j + 3] = 255; }
   return out;
 }
+// cv2.COLOR_BGR2GRAY on uint8: fixed-point 0.299 / 0.587 / 0.114, rounded.
+export const gray8 = (r, g, b) => (r * 4899 + g * 9617 + b * 1868 + 8192) >> 14;
+// cv2.GaussianBlur border (BORDER_REFLECT_101).
+const reflect = (i, n) => { while (i < 0 || i >= n) i = i < 0 ? -i : 2 * n - 2 - i; return i; };
+export function gaussKernel(ksize = KSIZE, sigma = SIGMA) {
+  const r = (ksize - 1) / 2, k = new Float32Array(ksize); let s = 0;
+  for (let i = -r; i <= r; i++) s += (k[i + r] = Math.exp(-(i * i) / (2 * sigma * sigma)));
+  for (let i = 0; i < ksize; i++) k[i] /= s;
+  return { k, r };
+}
+// Separable blur of a uint8 image, rounded back to uint8. Tap indices precomputed per size.
+const tapCache = {};
+export function blur8(src, tmp, dst, w, h, G = gaussKernel()) {
+  const { k, r } = G, n = 2 * r + 1, key = w + 'x' + h + 'x' + n;
+  const T = tapCache[key] || (tapCache[key] = {
+    x: Int32Array.from({ length: w * n }, (_, q) => reflect(((q / n) | 0) + (q % n) - r, w)),
+    y: Int32Array.from({ length: h * n }, (_, q) => reflect(((q / n) | 0) + (q % n) - r, h) * w) });
+  for (let y = 0; y < h; y++) { const row = y * w; for (let x = 0; x < w; x++) { let a = 0; const o = x * n; for (let t = 0; t < n; t++) a += src[row + T.x[o + t]] * k[t]; tmp[row + x] = a; } }
+  for (let y = 0; y < h; y++) { const o = y * n; for (let x = 0; x < w; x++) { let a = 0; for (let t = 0; t < n; t++) a += tmp[T.y[o + t] + x] * k[t]; dst[y * w + x] = Math.min(255, Math.round(a)); } }
+}
+// cv2.resize INTER_LINEAR at exactly 1/8: each output pixel is the rounded mean of source
+// pixels 8x+3, 8x+4 by 8y+3, 8y+4.
+export const down8 = (a, b, c, d) => (a + b + c + d + 2) >> 2;
 
-// rgba: Uint8ClampedArray (w*h*4). Returns every intermediate so the demo can show any stage.
-export function retinex(rgba, w, h, { beta = BETA, sigma = SIGMA, scale = 8 } = {}) {
-  const N = w * h;
-  // 1. grayscale (OpenCV weights)
-  const gray = new Float32Array(N);
-  for (let i = 0, j = 0; i < N; i++, j += 4) gray[i] = 0.299 * rgba[j] + 0.587 * rgba[j + 1] + 0.114 * rgba[j + 2];
-  // 2. downscale to 1/8 (area mean)
-  const sw = Math.max(1, Math.floor(w / scale)), sh = Math.max(1, Math.floor(h / scale)), small = new Float32Array(sw * sh);
-  for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
-    let a = 0, n = 0;
-    for (let yy = y * scale; yy < Math.min(h, (y + 1) * scale); yy++) for (let xx = x * scale; xx < Math.min(w, (x + 1) * scale); xx++) { a += gray[yy * w + xx]; n++; }
-    small[y * sw + x] = a / n;
-  }
-  // 3. Gaussian blur estimates the illumination L
-  const Ls = blur1(blur1(small, sw, sh, sigma, true), sw, sh, sigma, false);
-  // 4. resize back up (bilinear, pixel centres) and clip to a minimum of 1
-  const L = new Float32Array(N);
+// IE.py step by step, on an RGBA image (the sender's output). Returns every intermediate.
+export function retinex(rgba, w, h, { beta = BETA, scale = 8 } = {}) {
+  const N = w * h, gray = new Uint8Array(N);
+  for (let i = 0, j = 0; i < N; i++, j += 4) gray[i] = gray8(rgba[j], rgba[j + 1], rgba[j + 2]);
+  const sw = w / scale, sh = h / scale, small = new Uint8Array(sw * sh), Ls = new Uint8Array(sw * sh), tmp = new Float32Array(sw * sh);
+  const o = scale / 2 - 1;
+  for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) { const i = (y * scale + o) * w + x * scale + o; small[y * sw + x] = down8(gray[i], gray[i + 1], gray[i + w], gray[i + w + 1]); }
+  blur8(small, tmp, Ls, sw, sh);
+  const L = new Float32Array(N), out = new Uint8ClampedArray(N * 4);
   for (let y = 0; y < h; y++) {
     const fy = Math.min(sh - 1, Math.max(0, (y + 0.5) / scale - 0.5)), y0 = Math.floor(fy), y1 = Math.min(sh - 1, y0 + 1), ty = fy - y0;
     for (let x = 0; x < w; x++) {
       const fx = Math.min(sw - 1, Math.max(0, (x + 0.5) / scale - 0.5)), x0 = Math.floor(fx), x1 = Math.min(sw - 1, x0 + 1), tx = fx - x0;
-      const v = (Ls[y0 * sw + x0] * (1 - tx) + Ls[y0 * sw + x1] * tx) * (1 - ty) + (Ls[y1 * sw + x0] * (1 - tx) + Ls[y1 * sw + x1] * tx) * ty;
-      L[y * w + x] = Math.max(1, v);
+      const v = Math.round((Ls[y0 * sw + x0] * (1 - tx) + Ls[y0 * sw + x1] * tx) * (1 - ty) + (Ls[y1 * sw + x0] * (1 - tx) + Ls[y1 * sw + x1] * tx) * ty);
+      L[y * w + x] = Math.max(1, Math.min(255, v));
     }
   }
-  // 5. I / L * beta, 6. clip to uint8
-  const out = new Uint8ClampedArray(N * 4);
   for (let i = 0, j = 0; i < N; i++, j += 4) {
-    const g = beta / L[i];
-    out[j] = rgba[j] * g; out[j + 1] = rgba[j + 1] * g; out[j + 2] = rgba[j + 2] * g; out[j + 3] = 255;
+    for (let c = 0; c < 3; c++) out[j + c] = Math.floor(Math.min(255, rgba[j + c] / L[i] * beta));
+    out[j + 3] = 255;
   }
   return { gray, small, sw, sh, Ls, L, out };
 }
 
-// Gray-world white balance. The report says the frames are colour balanced but not how.
-export function whiteBalance(rgba, w, h) {
-  let r = 0, g = 0, b = 0; const N = w * h;
-  for (let j = 0; j < N * 4; j += 4) { r += rgba[j]; g += rgba[j + 1]; b += rgba[j + 2]; }
-  const m = (r + g + b) / 3, kr = m / (r || 1), kg = m / (g || 1), kb = m / (b || 1);
-  const out = new Uint8ClampedArray(N * 4);
-  for (let j = 0; j < N * 4; j += 4) { out[j] = rgba[j] * kr; out[j + 1] = rgba[j + 1] * kg; out[j + 2] = rgba[j + 2] * kb; out[j + 3] = 255; }
-  return out;
-}
-
 // ---------- detections ----------
+// Colour class of a corrected pixel: 1 red, 2 blue, 0 neither. The GPU shader uses the same test.
+export const classOf = (R, G, B) => R > 80 && R - (G > B ? G : B) > 40 ? 1 : B > 80 && B - (R > G ? R : G) > 30 ? 2 : 0;
+
 // A plain colour detector, one camera tile at a time, so no box spans two cameras.
 export function detect(rgba, w, h, tileW = CAM.W, minArea = 3) {
   const N = w * h, cls = new Uint8Array(N);
   for (let i = 0, j = 0; i < N; i++, j += 4) {
-    const r = rgba[j], g = rgba[j + 1], b = rgba[j + 2];
-    if (r > 90 && r - Math.max(g, b) > 55) cls[i] = 1;
-    else if (b > 90 && b - Math.max(r, g) > 40) cls[i] = 2;
+    cls[i] = classOf(rgba[j], rgba[j + 1], rgba[j + 2]);
   }
   const seen = new Uint8Array(N), boxes = [], stack = new Int32Array(N);
   for (let i = 0; i < N; i++) {
@@ -176,82 +181,65 @@ export function detect(rgba, w, h, tileW = CAM.W, minArea = 3) {
 }
 
 // ---------- fused per-update pipeline ----------
-// Same maths as whiteBalance -> retinex -> detect above, in two passes over the full strip with
-// buffers allocated once. Gray-world gains and the 1/8 grayscale both come from 8x8 block sums
-// gathered while the sensor image is written, so the full-size gray, wb and L images are never built.
-// Matches the reference to within rounding (test_percep.mjs).
-export function createPipe({ W, H, tileW = CAM.W, scale = 8, sigma = SIGMA, beta = BETA } = {}) {
-  const N = W * H, sw = W / scale, sh = H / scale, M = sw * sh;
+// Same maths as senderCorrect -> retinex -> detect above, with buffers allocated once. The 1/8
+// image only needs 4 source pixels per block, so the full-size gray image is never built; the
+// sender's correction is applied on the fly. Matches the reference (test_percep.mjs).
+export function createPipe({ W, H, tileW = CAM.W, scale = 8, beta = BETA } = {}) {
+  const N = W * H, sw = W / scale, sh = H / scale, M = sw * sh, o = scale / 2 - 1;
   const raw = new Uint8ClampedArray(N * 4), out = new Uint8ClampedArray(N * 4), lmap = new Uint8ClampedArray(N);
   const cls = new Uint8Array(N), stack = new Int32Array(N);
-  const sR = new Float64Array(M), sG = new Float64Array(M), sB = new Float64Array(M);
-  const small = new Float32Array(M), tmp = new Float32Array(M), Ls = new Float32Array(M), lrow = new Float32Array(sw);
+  const small = new Uint8Array(M), tmp = new Float32Array(M), Ls = new Uint8Array(M), lrow = new Float32Array(sw), G = gaussKernel();
   for (let j = 3; j < N * 4; j += 4) { raw[j] = 255; out[j] = 255; }
-  // Gaussian taps and bilinear x weights, fixed.
-  const r = Math.ceil(sigma * 3), k = new Float32Array(2 * r + 1); { let s = 0; for (let i = -r; i <= r; i++) s += (k[i + r] = Math.exp(-(i * i) / (2 * sigma * sigma))); for (let i = 0; i < k.length; i++) k[i] /= s; }
+  // Sender correction as a table per channel (input is uint8).
+  const S = [0, 1, 2].map(c => Uint8Array.from({ length: 256 }, (_, x) => sendCh(x, c)));
+  const [S0, S1, S2] = S;
   const X0 = new Int32Array(W), X1 = new Int32Array(W), TX = new Float32Array(W);
   for (let x = 0; x < W; x++) { const f = Math.min(sw - 1, Math.max(0, (x + 0.5) / scale - 0.5)); X0[x] = Math.floor(f); X1[x] = Math.min(sw - 1, X0[x] + 1); TX[x] = f - X0[x]; }
-  const P = { W, H, sw, sh, raw, out, lmap, gains: [1, 1, 1], boxes: [] };
+  const P = { W, H, sw, sh, raw, out, lmap, boxes: [] };
 
-  // Pass 1 helper for callers that already have an RGB(A) image (the test): copy it in and sum.
-  P.load = (rgba) => { raw.set(rgba); P.sum(); };
-  P.sum = () => {
-    sR.fill(0); sG.fill(0); sB.fill(0);
-    for (let y = 0, j = 0; y < H; y++) { const row = (y / scale | 0) * sw; for (let x = 0; x < W; x++, j += 4) { const b = row + (x / scale | 0); sR[b] += raw[j]; sG[b] += raw[j + 1]; sB[b] += raw[j + 2]; } }
-  };
-  // Pass 1 for the demo: lens lookup + sensor look, written into raw, summed on the way.
+  P.load = (rgba) => { raw.set(rgba); };
+  // Pass 1 for the demo: lens lookup + sensor look into raw.
   // buf: render pixels; lut: strip pixel -> buf offset or -1; vg: per-tile-pixel gain; noise per pixel.
   let GR = null, GG = null, GB = null, gKey = null;
   P.sense = (buf, lut, vg, noise, tint) => {
-    if (gKey !== vg) {                                   // gain x tint per tile pixel, once
+    if (gKey !== vg) {
       gKey = vg; GR = new Float32Array(vg.length); GG = new Float32Array(vg.length); GB = new Float32Array(vg.length);
       for (let q = 0; q < vg.length; q++) { GR[q] = vg[q] * tint[0]; GG[q] = vg[q] * tint[1]; GB[q] = vg[q] * tint[2]; }
     }
-    const tiles = W / tileW, bpt = tileW / scale;
-    for (let y = 0; y < H; y++) {
-      const brow = (y / scale | 0) * sw, first = y % scale === 0;
-      for (let t = 0; t < tiles; t++) for (let bx = 0; bx < bpt; bx++) {
-        let ar = 0, ag = 0, ab = 0;
-        const x0 = t * tileW + bx * scale, g0 = y * tileW + bx * scale;
-        for (let q = 0; q < scale; q++) {
-          const i = y * W + x0 + q, kk = lut[i], j = i << 2;
-          if (kk < 0) { raw[j] = raw[j + 1] = raw[j + 2] = 0; continue; }
-          const gi = g0 + q, nz = noise[i];
-          raw[j] = buf[kk] * GR[gi] + nz; raw[j + 1] = buf[kk + 1] * GG[gi] + nz; raw[j + 2] = buf[kk + 2] * GB[gi] + nz;
-          ar += raw[j]; ag += raw[j + 1]; ab += raw[j + 2];
-        }
-        const b = brow + t * bpt + bx;
-        if (first) { sR[b] = ar; sG[b] = ag; sB[b] = ab; } else { sR[b] += ar; sG[b] += ag; sB[b] += ab; }
+    for (let y = 0, i = 0; y < H; y++) {
+      const vrow = y * tileW;
+      for (let t = 0; t < W / tileW; t++) for (let u = 0; u < tileW; u++, i++) {
+        const kk = lut[i], j = i << 2;
+        if (kk < 0) { raw[j] = raw[j + 1] = raw[j + 2] = 0; continue; }
+        const gi = vrow + u, nz = noise[i];
+        raw[j] = buf[kk] * GR[gi] + nz; raw[j + 1] = buf[kk + 1] * GG[gi] + nz; raw[j + 2] = buf[kk + 2] * GB[gi] + nz;
       }
     }
   };
-  // Pass 2: gains, L from the block sums, corrected image, colour classes, then boxes.
+  // Pass 2: 1/8 gray from 4 samples per block, blur, corrected image, colour classes, boxes.
   P.correct = () => {
-    let tR = 0, tG = 0, tB = 0; for (let b = 0; b < M; b++) { tR += sR[b]; tG += sG[b]; tB += sB[b]; }
-    const m = (tR + tG + tB) / 3, kr = m / (tR || 1), kg = m / (tG || 1), kb = m / (tB || 1); P.gains = [kr, kg, kb];
-    const n = scale * scale, wr = 0.299 * kr / n, wg = 0.587 * kg / n, wb = 0.114 * kb / n;
-    for (let b = 0; b < M; b++) small[b] = sR[b] * wr + sG[b] * wg + sB[b] * wb;
-    for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) { let a = 0; for (let i = -r; i <= r; i++) a += small[y * sw + Math.min(sw - 1, Math.max(0, x + i))] * k[i + r]; tmp[y * sw + x] = a; }
-    for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) { let a = 0; for (let i = -r; i <= r; i++) a += tmp[Math.min(sh - 1, Math.max(0, y + i)) * sw + x] * k[i + r]; Ls[y * sw + x] = a; }
+    const g = (i) => { const j = i << 2; return gray8(S0[raw[j]], S1[raw[j + 1]], S2[raw[j + 2]]); };
+    for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) { const i = (y * scale + o) * W + x * scale + o; small[y * sw + x] = down8(g(i), g(i + 1), g(i + W), g(i + W + 1)); }
+    blur8(small, tmp, Ls, sw, sh, G);
     for (let y = 0, i = 0; y < H; y++) {
       const fy = Math.min(sh - 1, Math.max(0, (y + 0.5) / scale - 0.5)), y0 = Math.floor(fy), y1 = Math.min(sh - 1, y0 + 1), ty = fy - y0;
       for (let x = 0; x < sw; x++) lrow[x] = Ls[y0 * sw + x] * (1 - ty) + Ls[y1 * sw + x] * ty;
       for (let x = 0; x < W; x++, i++) {
-        const a = lrow[X0[x]], l = a + (lrow[X1[x]] - a) * TX[x], L = l < 1 ? 1 : l, g = beta / L, j = i << 2;
+        const a = lrow[X0[x]];
+        let L = Math.round(a + (lrow[X1[x]] - a) * TX[x]); if (L < 1) L = 1; else if (L > 255) L = 255;
+        const k = beta / L, j = i << 2;
         lmap[i] = L;
-        // balanced frame is uint8 before the division, as in the reference
-        let wr = (raw[j] * kr + 0.5) | 0, wg = (raw[j + 1] * kg + 0.5) | 0, wb2 = (raw[j + 2] * kb + 0.5) | 0;
-        if (wr > 255) wr = 255; if (wg > 255) wg = 255; if (wb2 > 255) wb2 = 255;
-        const R = wr * g, G = wg * g, B = wb2 * g;
-        out[j] = R; out[j + 1] = G; out[j + 2] = B;
-        cls[i] = R > 90 && R - (G > B ? G : B) > 55 ? 1 : B > 90 && B - (R > G ? R : G) > 40 ? 2 : 0;
+        let R = S0[raw[j]] * k, Gc = S1[raw[j + 1]] * k, B = S2[raw[j + 2]] * k;
+        R = R > 255 ? 255 : R | 0; Gc = Gc > 255 ? 255 : Gc | 0; B = B > 255 ? 255 : B | 0;
+        out[j] = R; out[j + 1] = Gc; out[j + 2] = B;
+        cls[i] = classOf(R, Gc, B);
       }
     }
     P.boxes = boxesFrom(cls, stack, W, H, tileW, 3);
     return P.boxes;
   };
-  // Balanced image, built only when that stage is on screen.
-  P.balanced = (dst) => { const [kr, kg, kb] = P.gains; for (let j = 0; j < N * 4; j += 4) { dst[j] = raw[j] * kr; dst[j + 1] = raw[j + 1] * kg; dst[j + 2] = raw[j + 2] * kb; dst[j + 3] = 255; } };
+  // Sender's output (the Balanced stage), built only when that stage is on screen.
+  P.balanced = (dst) => { for (let j = 0; j < N * 4; j += 4) { dst[j] = S0[raw[j]]; dst[j + 1] = S1[raw[j + 1]]; dst[j + 2] = S2[raw[j + 2]]; dst[j + 3] = 255; } };
   return P;
 }
 

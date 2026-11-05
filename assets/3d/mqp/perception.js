@@ -3,7 +3,7 @@
 // report's illumination correction, a colour detector boxes the blocks, and each box's bottom-centre
 // pixel is projected onto the floor. The map only ever shows what the pixels say.
 import { createShell, h } from '../demo-shell.js';
-import { CAM, CAMS, HALF, FIELD, BLOCK, MOUNT_H, PITCH, undistort, pixelToField, onField, createPipe, boxesFromAlpha, mergeEstimates, SIGMA, BETA } from './percep.js';
+import { CAM, CAMS, HALF, FIELD, BLOCK, MOUNT_H, PITCH, undistort, pixelToField, onField, createPipe, boxesFromAlpha, mergeEstimates, blur8, gaussKernel, BETA, TINT, SEND } from './percep.js';
 
 const params = new URLSearchParams(location.search);
 const reduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -189,11 +189,9 @@ async function init(shell, { strip, map, getStage }) {
     renderer.setRenderTarget(null);
     scene.matrixWorldAutoUpdate = true; scene.add(robot); scene.background = bg;
   }
-  // Lens, sensor look, illumination correction and colour classes run on the GPU (gpuPipe). The
-  // CPU reads back the 160x25 block means for the gray-world gains and the 1/8 image, blurs that,
-  // and reads back the corrected strip for the boxes. Without float render targets the same maths
-  // runs on the CPU (createPipe in percep.js).
-  const pipe = renderer.extensions.has('EXT_color_buffer_float') ? gpuPipe(THREE, renderer, rt) : cpuPipe(THREE, renderer, rt);
+  // Lens, sensor look, the sender's correction, illumination correction and colour classes run on
+  // the GPU (gpuPipe). Without async readback the same maths runs on the CPU (createPipe in percep.js).
+  const pipe = typeof renderer.readRenderTargetPixelsAsync === 'function' ? gpuPipe(THREE, renderer, rt) : cpuPipe(THREE, renderer, rt);
 
   // ---------- pipeline ----------
   let boxes = [], est = [], blocksSeen = [], busy = false;
@@ -452,16 +450,18 @@ async function init(shell, { strip, map, getStage }) {
 }
 
 // ---------- GPU pipeline ----------
-// Passes, each a full-screen quad into its own target:
+// The robot's chain (Autonomous-VEXU/camera_stream): the sender (stream_raw.py) brightens and
+// colour-corrects each frame, the receiver (IE.py) removes the lighting. Passes, each a full-screen
+// quad into its own target:
 //   sense:   strip pixel -> undistorted ray -> pinhole render texel; dark, yellow, hot-centred sensor
-//   means:   8x8 block means of the sensor image (160x25, float), read back
-//   correct: balanced uint8 frame / L * beta, clipped; colour class in alpha; read back
+//   small:   the 1/8 grayscale of the sender's output (4 samples per block, as INTER_LINEAR), read back
+//   correct: sender's output / L * 120, truncated to uint8; colour class in alpha; read back
 //   flags:   which 8x8 blocks hold any class pixel, so the box search skips the rest
+// The 31x31 Gaussian on the 160x25 image runs on the CPU (blur8 in percep.js, same as the tests).
 // Readbacks are asynchronous, so the main thread never waits on the GPU.
-// L itself (gray, 1/8, Gaussian) is built on the CPU from the means, as in createPipe.
 const VS = 'void main() { gl_Position = vec4(position.xy, 0.0, 1.0); }';
 const SENSE = `precision highp float; precision highp int;
-uniform sampler2D pin; uniform float fx, fy, cx, cy, k1, k2, XR, YR; uniform int RW, RH, TW, W;
+uniform sampler2D pin; uniform float fx, fy, cx, cy, k1, k2, XR, YR; uniform int RW, RH, TW, W; uniform vec3 tint;
 float s8(float c) { c = clamp(c, 0.0, 1.0); return c <= 0.0031308 ? c * 12.92 : 1.055 * pow(c, 1.0 / 2.4) - 0.055; }
 void main() {
   ivec2 p = ivec2(gl_FragCoord.xy); int tile = p.x / TW, lu = p.x - tile * TW, v = p.y;
@@ -480,61 +480,60 @@ void main() {
     vec3 b8 = floor(vec3(s8(t.r), s8(t.g), s8(t.b)) * 255.0 + 0.5);
     float dx = (float(lu) - cx) / cx, dy = (float(v) - cy) / cx, g = (0.22 + 1.05 * exp(-(dx * dx + dy * dy) / 0.16)) * 0.55;
     uint h = (uint(v) * uint(W) + uint(p.x)) * 2654435761u; float nz = (float(h) / 4294967296.0 - 0.5) * 3.0;
-    c = (b8 * g * vec3(1.0, 0.84, 0.4) + nz) / 255.0;
+    c = (b8 * g * tint + nz) / 255.0;
   }
   gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
 }`;
-const MEANS = `precision highp float; uniform sampler2D raw;
-void main() { ivec2 p = ivec2(gl_FragCoord.xy) * 8; vec3 a = vec3(0.0);
-  for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) a += floor(texelFetch(raw, p + ivec2(x, y), 0).rgb * 255.0 + 0.5);
-  gl_FragColor = vec4(a / 64.0, 1.0); }`;
+// stream_raw.py on uint8 RGB: convertScaleAbs(alpha, beta) rounds, then the R, G, B gains truncate.
+// The tiny epsilon keeps float32 products such as 160 * 0.95 from landing just under the integer.
+const SENDER = `vec3 send(vec3 x) { vec3 v = min(vec3(255.0), floor(abs(x * ${SEND.alpha.toFixed(4)} + ${SEND.beta.toFixed(1)}) + 0.5));
+  return min(vec3(255.0), floor(v * vec3(${SEND.gain.map(g => g.toFixed(4)).join(', ')}) + 1e-4)); }
+int gray8(vec3 c) { ivec3 i = ivec3(c); return (i.r * 4899 + i.g * 9617 + i.b * 1868 + 8192) >> 14; }
+vec3 r8at(sampler2D t, ivec2 p) { return floor(texelFetch(t, p, 0).rgb * 255.0 + 0.5); }`;
+const SMALL = `precision highp float; precision highp int; uniform sampler2D raw;
+${SENDER}
+void main() { ivec2 p = ivec2(gl_FragCoord.xy) * 8 + 3;
+  int a = gray8(send(r8at(raw, p))) + gray8(send(r8at(raw, p + ivec2(1, 0)))) + gray8(send(r8at(raw, p + ivec2(0, 1)))) + gray8(send(r8at(raw, p + ivec2(1, 1))));
+  gl_FragColor = vec4(float((a + 2) >> 2) / 255.0, 0.0, 0.0, 1.0); }`;
 const CORRECT = `precision highp float; precision highp int;
-uniform sampler2D raw, Ls; uniform vec3 k; uniform float beta; uniform int mode, sw, sh;
+uniform sampler2D raw, Ls; uniform float beta; uniform int mode, sw, sh;
+${SENDER}
 float Lat(ivec2 p) {
   float fx = clamp((float(p.x) + 0.5) / 8.0 - 0.5, 0.0, float(sw - 1)), fy = clamp((float(p.y) + 0.5) / 8.0 - 0.5, 0.0, float(sh - 1));
   int x0 = int(floor(fx)), y0 = int(floor(fy)), x1 = min(sw - 1, x0 + 1), y1 = min(sh - 1, y0 + 1); float tx = fx - float(x0), ty = fy - float(y0);
   float a = texelFetch(Ls, ivec2(x0, y0), 0).r, b = texelFetch(Ls, ivec2(x1, y0), 0).r, c = texelFetch(Ls, ivec2(x0, y1), 0).r, d = texelFetch(Ls, ivec2(x1, y1), 0).r;
-  return max(1.0, (a * (1.0 - tx) + b * tx) * (1.0 - ty) + (c * (1.0 - tx) + d * tx) * ty);
+  return clamp(floor((a * (1.0 - tx) + b * tx) * (1.0 - ty) + (c * (1.0 - tx) + d * tx) * ty + 0.5), 1.0, 255.0);   // resize to uint8, then clip [1, 255]
 }
 void main() {
-  ivec2 p = ivec2(gl_FragCoord.xy); vec3 r8 = floor(texelFetch(raw, p, 0).rgb * 255.0 + 0.5), w = min(vec3(255.0), floor(r8 * k + 0.5));
+  ivec2 p = ivec2(gl_FragCoord.xy); vec3 r8 = r8at(raw, p), w = send(r8);
   if (mode == 1) { gl_FragColor = vec4(r8 / 255.0, 1.0); return; }
   if (mode == 2) { gl_FragColor = vec4(w / 255.0, 1.0); return; }
   float L = Lat(p);
-  if (mode == 3) { gl_FragColor = vec4(vec3(min(L, 255.0)) / 255.0, 1.0); return; }
-  vec3 o = w * beta / L;
-  float cl = (o.r > 90.0 && o.r - max(o.g, o.b) > 55.0) ? 1.0 : (o.b > 90.0 && o.b - max(o.r, o.g) > 40.0) ? 2.0 : 0.0;
-  gl_FragColor = vec4(min(o, vec3(255.0)) / 255.0, (255.0 - cl) / 255.0);   // alpha: 255 none, 254 red, 253 blue
+  if (mode == 3) { gl_FragColor = vec4(vec3(L) / 255.0, 1.0); return; }
+  vec3 o = floor(min(vec3(255.0), w / L * beta));                 // np.clip, then astype(uint8) truncates
+  float cl = (o.r > 80.0 && o.r - max(o.g, o.b) > 40.0) ? 1.0 : (o.b > 80.0 && o.b - max(o.r, o.g) > 30.0) ? 2.0 : 0.0;   // classOf in percep.js
+  gl_FragColor = vec4(o / 255.0, (255.0 - cl) / 255.0);   // alpha: 255 none, 254 red, 253 blue
 }`;
 const FLAGS = `precision highp float; uniform sampler2D outT;
 void main() { ivec2 p = ivec2(gl_FragCoord.xy) * 8; float any = 0.0;
   for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) if (texelFetch(outT, p + ivec2(x, y), 0).a < 0.998) any = 1.0;
   gl_FragColor = vec4(any, 0.0, 0.0, 1.0); }`;
 
-// Separable Gaussian on the 1/8 image, edge-clamped through precomputed tap indices.
-function blurSmall(small, tmp, Ls, sw, sh, k, r) {
-  const n = 2 * r + 1, ix = blurSmall.ix?.[sw] || ((blurSmall.ix ||= {})[sw] = Int32Array.from({ length: sw * n }, (_, q) => Math.min(sw - 1, Math.max(0, ((q / n) | 0) + (q % n) - r))));
-  const iy = blurSmall.iy?.[sh] || ((blurSmall.iy ||= {})[sh] = Int32Array.from({ length: sh * n }, (_, q) => Math.min(sh - 1, Math.max(0, ((q / n) | 0) + (q % n) - r)) * sw));
-  for (let y = 0; y < sh; y++) { const row = y * sw; for (let x = 0; x < sw; x++) { let a = 0; const o = x * n; for (let t = 0; t < n; t++) a += small[row + ix[o + t]] * k[t]; tmp[row + x] = a; } }
-  for (let y = 0; y < sh; y++) { const o = y * n; for (let x = 0; x < sw; x++) { let a = 0; for (let t = 0; t < n; t++) a += tmp[iy[o + t] + x] * k[t]; Ls[y * sw + x] = a; } }
-}
-function gauss(sigma) { const r = Math.ceil(sigma * 3), k = new Float32Array(2 * r + 1); let s = 0; for (let i = -r; i <= r; i++) s += (k[i + r] = Math.exp(-(i * i) / (2 * sigma * sigma))); for (let i = 0; i < k.length; i++) k[i] /= s; return { k, r }; }
-
 function gpuPipe(THREE, renderer, pinRT) {
   const sw = SW / 8, sh = SH / 8, M = sw * sh;
   const tgt = (w, h, type = THREE.UnsignedByteType) => new THREE.WebGLRenderTarget(w, h, { type, minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, depthBuffer: false });
-  const rawRT = tgt(SW, SH), meanRT = tgt(sw, sh, THREE.FloatType), outRT = tgt(SW, SH), stageRT = tgt(SW, SH), flagRT = tgt(sw, sh);
+  const rawRT = tgt(SW, SH), smallRT = tgt(sw, sh), outRT = tgt(SW, SH), stageRT = tgt(SW, SH), flagRT = tgt(sw, sh);
   const LsTex = new THREE.DataTexture(new Float32Array(M), sw, sh, THREE.RedFormat, THREE.FloatType); LsTex.minFilter = LsTex.magFilter = THREE.NearestFilter;
   const mat = (fs, uniforms) => new THREE.ShaderMaterial({ vertexShader: VS, fragmentShader: fs, uniforms, depthTest: false, depthWrite: false, blending: THREE.NoBlending });
   const sense = mat(SENSE, { pin: { value: pinRT.texture }, fx: { value: CAM.fx }, fy: { value: CAM.fy }, cx: { value: CAM.cx }, cy: { value: CAM.cy }, k1: { value: CAM.k1 }, k2: { value: CAM.k2 },
-    XR: { value: XR }, YR: { value: YR }, RW: { value: RW }, RH: { value: RH }, TW: { value: CAM.W }, W: { value: SW } });
-  const means = mat(MEANS, { raw: { value: rawRT.texture } });
-  const correct = mat(CORRECT, { raw: { value: rawRT.texture }, Ls: { value: LsTex }, k: { value: new THREE.Vector3(1, 1, 1) }, beta: { value: BETA }, mode: { value: 0 }, sw: { value: sw }, sh: { value: sh } });
+    XR: { value: XR }, YR: { value: YR }, RW: { value: RW }, RH: { value: RH }, TW: { value: CAM.W }, W: { value: SW }, tint: { value: new THREE.Vector3(...TINT) } });
+  const smallM = mat(SMALL, { raw: { value: rawRT.texture } });
+  const correct = mat(CORRECT, { raw: { value: rawRT.texture }, Ls: { value: LsTex }, beta: { value: BETA }, mode: { value: 0 }, sw: { value: sw }, sh: { value: sh } });
   const flagsM = mat(FLAGS, { outT: { value: outRT.texture } });
   const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), sense); quad.frustumCulled = false;
   const qs = new THREE.Scene(); qs.add(quad); const qc = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   const pass = (m, t) => { quad.material = m; renderer.setRenderTarget(t); renderer.render(qs, qc); };
-  const mbuf = new Float32Array(M * 4), small = new Float32Array(M), tmp = new Float32Array(M), Ls = LsTex.image.data, G = gauss(SIGMA);
+  const sbuf = new Uint8Array(M * 4), small = new Uint8Array(M), tmp = new Float32Array(M), L8 = new Uint8Array(M), Ls = LsTex.image.data, G = gaussKernel();
   const out = new ImageData(SW, SH), stage = new ImageData(SW, SH), seen = new Uint8Array(SW * SH), stack = new Int32Array(SW * SH), fbuf = new Uint8Array(M * 4);
   const outBytes = new Uint8Array(out.data.buffer), stageBytes = new Uint8Array(stage.data.buffer);
   let stageFor = null;
@@ -543,15 +542,13 @@ function gpuPipe(THREE, renderer, pinRT) {
     t: 0,                                                // main-thread time of the last run, ms
     async run(st = 'out') {
       let t = performance.now();
-      pass(sense, rawRT); pass(means, meanRT); renderer.setRenderTarget(null);
+      pass(sense, rawRT); pass(smallM, smallRT); renderer.setRenderTarget(null);
       P.t = performance.now() - t;
-      await renderer.readRenderTargetPixelsAsync(meanRT, 0, 0, sw, sh, mbuf);
+      await renderer.readRenderTargetPixelsAsync(smallRT, 0, 0, sw, sh, sbuf);
       t = performance.now();
-      let tR = 0, tG = 0, tB = 0; for (let b = 0; b < M; b++) { tR += mbuf[b * 4]; tG += mbuf[b * 4 + 1]; tB += mbuf[b * 4 + 2]; }
-      const m = (tR + tG + tB) / 3, kr = m / (tR || 1), kg = m / (tG || 1), kb = m / (tB || 1);
-      for (let b = 0; b < M; b++) small[b] = 0.299 * kr * mbuf[b * 4] + 0.587 * kg * mbuf[b * 4 + 1] + 0.114 * kb * mbuf[b * 4 + 2];
-      blurSmall(small, tmp, Ls, sw, sh, G.k, G.r); LsTex.needsUpdate = true;
-      correct.uniforms.k.value.set(kr, kg, kb); correct.uniforms.mode.value = 0; pass(correct, outRT); pass(flagsM, flagRT);
+      for (let b = 0; b < M; b++) small[b] = sbuf[b * 4];
+      blur8(small, tmp, L8, sw, sh, G); Ls.set(L8); LsTex.needsUpdate = true;     // IE.py: GaussianBlur((31, 31), 0)
+      correct.uniforms.mode.value = 0; pass(correct, outRT); pass(flagsM, flagRT);
       const reads = [renderer.readRenderTargetPixelsAsync(outRT, 0, 0, SW, SH, outBytes), renderer.readRenderTargetPixelsAsync(flagRT, 0, 0, sw, sh, fbuf)];
       if (st !== 'out') {   // the stage on screen comes back with the same batch
         correct.uniforms.mode.value = st === 'raw' ? 1 : st === 'wb' ? 2 : 3; pass(correct, stageRT);
@@ -593,7 +590,7 @@ function cpuPipe(THREE, renderer, pinRT) {
   return {
     ready: false,
     t: 0,
-    async run() { const t = performance.now(); renderer.readRenderTargetPixels(pinRT, 0, 0, RW * 4, RH, buf); renderer.setRenderTarget(null); p.sense(buf, lut, vg, noise, [1, 0.84, 0.4]); this.ready = true; const b = p.correct(); this.t = performance.now() - t; return b; },
+    async run() { const t = performance.now(); renderer.readRenderTargetPixels(pinRT, 0, 0, RW * 4, RH, buf); renderer.setRenderTarget(null); p.sense(buf, lut, vg, noise, TINT); this.ready = true; const b = p.correct(); this.t = performance.now() - t; return b; },
     image(st) {
       if (st === 'out') return out;
       const d = stage.data;
