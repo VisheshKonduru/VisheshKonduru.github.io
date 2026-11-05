@@ -65,12 +65,17 @@ ACTIVITIES = [
     ),
     dict(
         id="orchestra", label="Orchestra", title="Orchestra",
-        years="High school and WPI",
-        role="Violin", honors=[],
-        text="<p>I play in orchestra at WPI, and did in high school.</p>",
+        years="Sixth grade to now: middle school, Klein High School and WPI",
+        role="Violin", honors=["Festival Disney winner, 2019 to 2020", "Performed at the 75th Midwest Clinic, Chicago, December 2021"],
+        text=(
+            "<p>I have played violin since sixth grade, in orchestra through middle school and high school and now in the WPI Orchestra.</p>"
+            "<p>With the Klein High School Chamber Orchestra I performed at the 75th anniversary Midwest Clinic, the international band and orchestra conference at McCormick Place in Chicago, in December 2021. The concert was recorded and released by Mark Records. "
+            "At the clinic I met the composer Soon Hee Newbold. In 2019 to 2020 our high school orchestra won Festival Disney.</p>"
+        ),
         cover=("assets/img/activities/orchestra_young.jpg", "Me playing violin when I was younger."),
-        more=[("img", "assets/img/activities/orchestra_wpi.jpg", "Playing violin in a string section, left.")],
-        todo=["Ensemble names and years"],
+        more=[("img", "assets/img/activities/orchestra_wpi.jpg", "Playing violin in a string section, left."),
+              ("img", "assets/img/activities/orchestra_midwest_newbold.jpg", "With composer Soon Hee Newbold at the Midwest Clinic in Chicago, 2021.")],
+        todo=[],
     ),
     dict(
         id="sase", label="SASE", title="SASE, Society of Asian Scientists and Engineers",
