@@ -194,11 +194,14 @@ export class ParticleFilter {
   }
   converged() {
     const e = this.est, l1 = (e.cxx + e.cyy) / 2 + Math.sqrt(((e.cxx - e.cyy) / 2) ** 2 + e.cxy ** 2);
-    return e.weight > 0.9 && Math.sqrt(l1) < 0.15 && e.thStd < 0.2;
+    return e.weight > 0.9 && Math.sqrt(l1) < 0.15 && e.thStd < TH_GATE;
   }
 }
 
 // ---- Localization scene: kidnapped robot, known map, AMCL, A* to a goal ----
+// acceptance gates for "localized": heading spread, filter updates since the drop, distance driven
+export const TH_GATE = 0.3;
+export const UPD_GATE = 20, TRAVEL_GATE = 0.5;
 export class LocWorld {
   constructor(seed = 3, map = null) { this.reset(seed, map); }
   reset(seed, map = null) {
@@ -329,7 +332,7 @@ export class LocWorld {
   }
   evaluate() {
     const conv = this.pf.converged();
-    if (this.state === 'localizing' && conv && this.spun >= 2 * Math.PI && this.pfUpdates - (this.updAtKidnap || 0) >= 40 && this.travel > 1.0) { this.state = 'navigating'; this.path = null; this.replanT = 0; this.status = `Converged: spread ${this.spread().toFixed(2)} m`; }
+    if (this.state === 'localizing' && conv && this.spun >= 2 * Math.PI && this.pfUpdates - (this.updAtKidnap || 0) >= UPD_GATE && this.travel > TRAVEL_GATE) { this.state = 'navigating'; this.path = null; this.replanT = 0; this.status = `Converged: spread ${this.spread().toFixed(2)} m`; }
     else if (this.state === 'navigating' && !conv && this.pf.injectProb > 0.2) { this.state = 'localizing'; this.spun = 0; this.wanderHead = null; this.path = null; this.status = `Likelihood dropped, injecting ${Math.round(this.pf.injectProb * 100)}% random particles`; }
     else if (this.state === 'localizing') this.status = `Particle filter: ${this.pf.n} particles, spread ${this.spread().toFixed(2)} m`;
   }
