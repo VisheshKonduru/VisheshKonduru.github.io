@@ -79,6 +79,9 @@ const START = [
 const START_POSE = { x: -34, y: -4, th: 0.35 };
 
 async function init(shell, { strip, map, getStage }) {
+  // Start the robot model download and the Draco decoder fetch now, in parallel with three.js,
+  // instead of after the scene is built.
+  const robotSrc = prefetchRobot();
   const THREE = await import('three');
   const { mergeGeometries } = await import('three/addons/utils/BufferGeometryUtils.js');
   // Static parts that share a material become one mesh: fewer draw calls in each of the five renders.
@@ -155,7 +158,7 @@ async function init(shell, { strip, map, getStage }) {
   const pose = { ...START_POSE };
   const placeRobot = () => { robot.position.copy(T(pose.x, pose.y, 0)); robot.rotation.y = pose.th; };
   placeRobot();
-  loadRobot(THREE, robot, proxy, nose, setLayer, () => { needMain = true; kick(); });
+  loadRobot(THREE, robot, proxy, nose, setLayer, () => { needMain = true; kick(); }, robotSrc);
 
   // ---------- main camera ----------
   const cam = new THREE.PerspectiveCamera(34, 1, 5, 2000); cam.layers.enable(1);
@@ -601,12 +604,21 @@ function cpuPipe(THREE, renderer, pinRT) {
 }
 
 // The robot's CAD model, scaled to the 15 in frame. Keeps the box proxy if it fails to load.
-async function loadRobot(THREE, robot, proxy, nose, setLayer, done) {
+const ROBOT_URL = new URL('mqp_robot.glb', import.meta.url).href;
+function prefetchRobot() {
+  const buf = fetch(ROBOT_URL, { priority: 'high' }).then(r => r.ok ? r.arrayBuffer() : Promise.reject(new Error('HTTP ' + r.status)));
+  const loader = Promise.all([import('three/addons/loaders/GLTFLoader.js'), import('three/addons/loaders/DRACOLoader.js')]).then(([{ GLTFLoader }, { DRACOLoader }]) => {
+    const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/gltf/');
+    draco.preload();
+    return new GLTFLoader().setDRACOLoader(draco);
+  });
+  buf.catch(() => {}); loader.catch(() => {});
+  return { buf, loader };
+}
+async function loadRobot(THREE, robot, proxy, nose, setLayer, done, src) {
   try {
-    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
-    const { DRACOLoader } = await import('three/addons/loaders/DRACOLoader.js');
-    const loader = new GLTFLoader().setDRACOLoader(new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/gltf/'));
-    const gltf = await loader.loadAsync(new URL('mqp_robot.glb', import.meta.url).href);
+    const [buf, loader] = await Promise.all([src.buf, src.loader]);
+    const gltf = await loader.parseAsync(buf, new URL('./', ROBOT_URL).href);
     const m = gltf.scene, box = new THREE.Box3().setFromObject(m), size = box.getSize(new THREE.Vector3());
     const s = 15 / Math.max(size.x, size.z);
     m.scale.setScalar(s);
@@ -618,8 +630,8 @@ async function loadRobot(THREE, robot, proxy, nose, setLayer, done) {
     done();
   } catch (e) { console.warn('robot model', e); }
 }
-// Turns the CAD so its intake faces the robot's +x (forward).
-const ROBOT_YAW = 0;
+// Turns the CAD so its intake faces the robot's +x (forward): the intake is on the model's -z side.
+const ROBOT_YAW = -Math.PI / 2;
 
 const el = document.querySelector('[data-mqpvis]');
 if (el) mount(el);
