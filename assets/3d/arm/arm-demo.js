@@ -386,14 +386,28 @@ async function start(root, ui) {
       for (let i = 0; i < 9; i++) if (s[i] !== '.') { const p = V.applyH(cal.H, ...CELL(i)); ctx.fillStyle = '#fff'; ctx.fillText(s[i] === 'X' ? 'X' : 'O', p[0] + 16, p[1] - 12); }
       ctx.textAlign = 'left'; ctx.font = '500 19px system-ui, sans-serif'; ctx.textBaseline = 'top';
     }
+    // Crosshairs first, then labels placed greedily so none overlaps another label or a marker.
+    // Each label tries above, below, right and left of its blob, then steps further out with a leader line.
+    const placed = [], marks = frame.blobs.map(b => [b.u - 7, b.v - 7, b.u + 7, b.v + 7]);
+    const hit = (r) => placed.some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]) || marks.some(q => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]);
     for (const b of frame.blobs) {
       ctx.strokeStyle = b.ok ? '#fff' : '#999'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(b.u - 5, b.v); ctx.lineTo(b.u + 5, b.v); ctx.moveTo(b.u, b.v - 5); ctx.lineTo(b.u, b.v + 5); ctx.stroke();
+    }
+    for (const b of [...frame.blobs].sort((p, q) => p.v - q.v)) {
       const txt = b.ok ? LABEL[b.colour] : `${LABEL[b.colour]}, rejected`;
-      // Labels alternate above and below the blob so neighbours don't overlap.
-      const below = (frame.blobs.indexOf(b) % 2) === 1;
-      const w = ctx.measureText(txt).width, x = Math.max(2, Math.min(K.W - w - 4, b.u - w / 2)), y = below ? Math.min(K.H - 26, b.v + 16) : Math.max(2, b.v - 40);
-      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(x - 3, y - 2, w + 6, 24); ctx.fillStyle = '#fff'; ctx.fillText(txt, x, y);
+      const w = ctx.measureText(txt).width + 6, hgt = 24;
+      const box = (x, y) => { x = Math.max(0, Math.min(K.W - w, x)); y = Math.max(0, Math.min(K.H - hgt, y)); return [x, y, x + w, y + hgt]; };
+      const cand = [box(b.u - w / 2, b.v - 12 - hgt), box(b.u - w / 2, b.v + 12), box(b.u + 12, b.v - hgt / 2), box(b.u - 12 - w, b.v - hgt / 2)];
+      for (let k = 1; k <= 6; k++) cand.push(box(b.u - w / 2, b.v - 12 - hgt - k * (hgt + 4)), box(b.u - w / 2, b.v + 12 + k * (hgt + 4)));
+      const r = cand.find(c => !hit(c)) || cand[0];
+      placed.push(r);
+      const far = !(r[0] <= b.u + 14 && r[2] >= b.u - 14 && r[1] <= b.v + 14 + hgt && r[3] >= b.v - 14 - hgt);
+      if (far || cand.indexOf(r) >= 4) {     // leader line from the blob to the nearest edge of its label
+        const lx = Math.max(r[0], Math.min(r[2], b.u)), ly = b.v < r[1] ? r[1] : b.v > r[3] ? r[3] : (r[1] + r[3]) / 2;
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(b.u, b.v); ctx.lineTo(lx, ly); ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(r[0], r[1], w, hgt); ctx.fillStyle = '#fff'; ctx.fillText(txt, r[0] + 3, r[1] + 2);
     }
   }
   // Status, numbers and visuals from the current camera frame.
@@ -418,7 +432,7 @@ async function start(root, ui) {
   function drawPanels(ok) {
     // Board, top view: x along the board's long side (to the right), true ball = ring, detected = dot.
     ui.pBoard.draw((c, w, hh, C) => {
-      const L = 40, T = 14, sc = Math.min((w - L - 10) / (V.BOARD.Ly * 1000), (hh - T - 22) / (V.BOARD.Lx * 1000));
+      const L = 40, T = 14, sc = Math.min((w - L - 10) / (V.BOARD.Ly * 1000), (hh - T - 40) / (V.BOARD.Lx * 1000));
       const X = (b) => L + b[1] * 1000 * sc, Y = (b) => T + (V.BOARD.Lx - b[0]) * 1000 * sc;
       c.strokeStyle = C.ink2; c.lineWidth = 1; c.strokeRect(L, T, V.BOARD.Ly * 1000 * sc, V.BOARD.Lx * 1000 * sc);
       c.fillStyle = C.ink2; c.textAlign = 'left'; c.fillText('0', L - 12, T + V.BOARD.Lx * 1000 * sc + 14); c.textAlign = 'right';

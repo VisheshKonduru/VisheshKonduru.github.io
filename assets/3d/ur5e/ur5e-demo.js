@@ -46,7 +46,7 @@ export function mount(root) {
   const sel = h('select', { id: uid + 'c', 'aria-label': 'Controller' });
   for (const [k, v] of Object.entries(CONTROLLERS)) sel.append(h('option', { value: k, text: v }));
   sel.value = 'ct';
-  const ctl = h('label', { class: 'u5-ctl', for: uid + 'c', text: 'Controller' });
+  const ctl = h('span', { class: 'ds-pair u5-ctl' }, h('label', { for: uid + 'c', text: 'Controller' }), sel);
   let bGo = null, bFrames = null;
   function buildFlow(m) {
     const more = [{ label: 'Push the arm', id: 'push', onClick: push }, { label: 'Show frames', id: 'frames', pressed: st.frames, onClick: frames }];
@@ -54,7 +54,7 @@ export function mount(root) {
       ? shell.setFlow([{ step: 'Drag the ring at the tool', id: 'drag' }], more)
       : shell.setFlow([{ step: 'Drag the goal or an obstacle', id: 'goal' }, { primary: 'Plan and move', id: 'go', onClick: () => { shell.done('plan'); startPlan(); } }], more);
     bGo = b.go || null; bFrames = b.frames;
-    shell.flow.querySelector('.ds-more').prepend(ctl, sel);
+    shell.flow.querySelector('.ds-more').prepend(ctl);
     shell.focusGroup(m === 'move' ? ['kin', 'ctrl', 'dyn'] : ['plan', 'ctrl', 'dyn']);
   }
   const status = shell.status;

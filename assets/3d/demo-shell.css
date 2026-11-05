@@ -117,3 +117,9 @@
 .mq-k-dot { width: 9px !important; height: 9px !important; background: var(--ds-ink); border-radius: 50%; }
 .mq-k-x { font-size: 20px; line-height: 14px; font-weight: 700; text-align: center; }
 .ds-side-body .mq-map { background: none; }
+/* Camera tools beside a side view: two even columns so no button ends up alone on a line. */
+.ds-side .ds-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 8px; max-width: 420px; }
+.ds-side .ds-tools button, .ds-side .ds-tools button:first-child { justify-self: start; padding: 0 12px; text-align: left; }
+/* Label + dropdown stay on one line; the dropdown is as wide as the chosen option. */
+.ds-more .ds-pair { gap: 0; white-space: nowrap; }
+.ds-more .ds-pair select { field-sizing: content; padding: 0 8px; }
