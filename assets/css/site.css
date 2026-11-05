@@ -435,6 +435,8 @@ body:has(.hero) .site-head.solid .lite-toggle { color: var(--ink-2); }
 /* project header: plain lines, bordered link buttons */
 .head-meta { font-size: 18px; color: var(--ink); margin: 0 0 8px; max-width: 760px; }
 .head-year { color: var(--ink-2); margin-left: 8px; }
+.entry-skills { font-size: 15px; color: var(--ink); margin: 6px 0 0; }
+.entry-skills span { font-weight: 600; margin-right: 6px; }
 .head-skills { font-size: 17px; color: var(--ink); margin: 0 0 20px; max-width: 760px; }
 .head-skills span { font-weight: 600; margin-right: 6px; }
 .chapter-head .top-links { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 32px; }

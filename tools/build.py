@@ -193,6 +193,7 @@ def index_page():
     <h3><a class="entry-link" href="{href}">{p["title"]}</a></h3>
     {honors_card(p)}
     <p>{p["blurb"]}</p>
+    <p class="entry-skills"><span>Skills</span> {", ".join(p["tags"])}</p>
     {live}
   </div>
 </div>""")
