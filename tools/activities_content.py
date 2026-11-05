@@ -70,11 +70,11 @@ ACTIVITIES = [
         text=(
             "<p>I have played violin since sixth grade, in orchestra through middle school and high school and now in the WPI Orchestra.</p>"
             "<p>With the Klein High School Chamber Orchestra, conducted by Creston Herron, I performed at the 75th annual <a href='https://www.midwestclinic.org/midwest-clinic-performing-organization?gid=4864&amp;pyear=2021'>Midwest Clinic International Band and Orchestra Conference</a> at McCormick Place in Chicago on December 17, 2021. The concert was released by Mark Records as <a href='https://open.spotify.com/album/6imbxGOJWm5n9EEnIwxcQD'>2021 Midwest Clinic: Klein High School Chamber Orchestra (Live)</a>. "
-            "At the clinic I met the composers Soon Hee Newbold, Yukiko Nishimura and Javier Pinell. In 2019 to 2020 our high school orchestra won first place at Festival Disney.</p>"
+            "Leading up to the clinic and in Chicago, we worked with the composers Soon Hee Newbold, Yukiko Nishimura and Javier Pinell. In 2019 to 2020 our high school orchestra won first place at Festival Disney.</p>"
         ),
         cover=("assets/img/activities/orchestra_young.jpg", "Me playing violin when I was younger."),
         more=[("img", "assets/img/activities/orchestra_wpi.jpg", "Playing violin in a string section, left."),
-              ("img", "assets/img/activities/orchestra_midwest_newbold.jpg", "With composer Soon Hee Newbold at the Midwest Clinic in Chicago, 2021."),
+              ("img", "assets/img/activities/orchestra_midwest_newbold.jpg", "With composer Soon Hee Newbold, who worked with our orchestra, at the Midwest Clinic in Chicago, 2021."),
               ("img", "assets/img/activities/orchestra_midwest_nishimura.jpg", "With composer Yukiko Nishimura at the Midwest Clinic, 2021."),
               ("img", "assets/img/activities/orchestra_midwest_pinell.jpg", "With composer Javier Pinell at the Midwest Clinic, 2021.")],
         todo=[],
