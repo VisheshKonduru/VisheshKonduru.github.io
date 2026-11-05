@@ -1,0 +1,59 @@
+{
+ "arm": [
+  {
+   "file": "arm_sort",
+   "label": "Sort balls",
+   "w": 1280,
+   "h": 700,
+   "order": 0
+  },
+  {
+   "file": "arm_ttt",
+   "label": "Play tic-tac-toe",
+   "w": 1280,
+   "h": 700,
+   "order": 1
+  }
+ ],
+ "tb3": [
+  {
+   "file": "tb3_map",
+   "label": "Autonomous mapping",
+   "w": 1280,
+   "h": 700,
+   "order": 0
+  },
+  {
+   "file": "tb3_loc",
+   "label": "Autonomous localization",
+   "w": 1280,
+   "h": 700,
+   "order": 1
+  }
+ ],
+ "ur5e": [
+  {
+   "file": "ur5e_move",
+   "label": "Move the tool",
+   "w": 1280,
+   "h": 700,
+   "order": 0
+  },
+  {
+   "file": "ur5e_plan",
+   "label": "Plan around obstacles",
+   "w": 1280,
+   "h": 700,
+   "order": 1
+  }
+ ],
+ "mqp": [
+  {
+   "file": "mqp_drive",
+   "label": "Perception",
+   "w": 1280,
+   "h": 940,
+   "order": 0
+  }
+ ]
+}

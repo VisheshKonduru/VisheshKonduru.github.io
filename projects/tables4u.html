@@ -7,39 +7,52 @@
 <meta name="description" content="A restaurant reservation web app. Diners find a restaurant and book a table; owners manage their tables, hours and bookings.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/css/site.css">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/site.css?v=b985ed0a">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <header class="site-head">
   <div class="edge head-inner">
     <a class="site-name" href="../index.html">Vishesh Konduru</a>
-    <nav class="site-nav"><a href="../index.html">Work</a><a href="../journey.html">Journey</a><a href="../about.html">About</a><a href="../docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
+    <nav class="site-nav"><a href="../index.html" aria-current=page>Work</a><a href="../activities.html">Activities</a><a href="../about.html">About</a><a href="../docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
   </div>
 </header>
-<main>
+<main id="main">
 
-<article class="wrap project-head">
-  <div class="article">
+<article class="wrap chapter">
+  <header class="chapter-head">
+    <p class="crumb"><a href="../index.html">Work</a> / Tables4U</p>
     <h1>Tables4U</h1>
-    <p class="meta">Software Engineering at WPI, fall 2024. Team project.</p>
     
+    <p class="head-meta">Software Engineering at WPI, fall 2024. Team project.</p>
+    <p class="head-skills"><span>Skills</span> Next.js, React, AWS Lambda, MySQL, Vercel</p>
     <div class="links top-links"><a href="https://github.com/ronak-wani/Tables4u" class="">Code on GitHub</a></div>
-    <figure class="fig"><div class="todo">Screenshot of the app</div></figure><p>Tables4U has three kinds of users. Diners search for restaurants that are open on a given date and time, book a table and cancel if they need to. Restaurant owners set up their restaurant, add tables, set their hours, close specific days and see who is booked. An administrator can see every restaurant and pull availability reports.</p><h2>How it's built</h2><p>We designed it in UML first. The front end is Next.js, React and Tailwind CSS, deployed on Vercel. The back end is a set of REST APIs, each one an AWS Lambda function behind API Gateway, with the data in a MySQL database on Amazon RDS.</p>
+  </header>
+  
+  <div class="chapter-body">
+    <aside class="toc-col"><nav class="toc" aria-label="Sections"><p>On this page</p><ol><li><a href="#how-it-s-built">How it's built</a></li></ol></nav></aside>
+    <div class="article">
+    <details class="toc-m"><summary>On this page</summary><ol><li><a href="#how-it-s-built">How it's built</a></li></ol></details>
+    <figure class="fig"><div class="todo">Coming soon</div></figure><p>Tables4U has three kinds of users. Diners search for restaurants that are open on a given date and time, book a table and cancel if they need to. Restaurant owners set up their restaurant, add tables, set their hours, close specific days and see who is booked. An administrator can see every restaurant and pull availability reports.</p><h2 id="how-it-s-built">How it's built</h2><p>We designed it in UML first. The front end is Next.js, React and Tailwind CSS, deployed on Vercel. The back end is a set of REST APIs, each one an AWS Lambda function behind API Gateway, with the data in a MySQL database on Amazon RDS.</p>
+    </div>
   </div>
 </article>
 <section><div class="wrap pager">
-  <a href="mapping.html">&larr; Autonomous Mapping and Localizing Robot</a>
-  <a href="heimdall.html">Heimdall &rarr;</a>
+  <a href="mapping.html"><span>Previous</span>&larr; Autonomous Mapping and Localizing Robot</a>
+  <a class="back" href="../index.html">Back to Work</a>
+  <a href="heimdall.html"><span>Next</span>Heimdall: An Agentic Eye for Chemistry &rarr;</a>
 </div></section>
 
 </main>
+<p class="wip">Work in progress</p>
 <footer class="site-foot">
   <div class="wrap">
     <span>Vishesh Konduru</span>
     <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
   </div>
 </footer>
+<script src="../assets/js/lite.js?v=f8592264"></script>
 <script>
 (function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
 function go(){if(!done){done=true;hero.classList.add('go');}}
@@ -50,6 +63,18 @@ setTimeout(go,2500);})();
 (function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
 if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
 f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+(function(){if(!('IntersectionObserver' in window))return;
+var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(!still){var els=document.querySelectorAll('main > section .wrap > *, .article > *, .stop, .entry');
+var ro=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});
+els.forEach(function(el){if(el.getBoundingClientRect().top>innerHeight){el.classList.add('rv');ro.observe(el);}});}
+var vo=new IntersectionObserver(function(es){es.forEach(function(e){var v=e.target;if(e.isIntersecting){if(!still||v.closest('.hero')){var p=v.play();if(p&&p.catch)p.catch(function(){});}}else v.pause();});},{rootMargin:'200px'});
+document.querySelectorAll('video[autoplay]').forEach(function(v){if(still&&!v.closest('.hero')){v.removeAttribute('autoplay');v.pause();v.controls=true;}vo.observe(v);});
+document.querySelectorAll('.yt').forEach(function(b){b.addEventListener('click',function(){var f=document.createElement('iframe');f.className='short';f.src='https://www.youtube-nocookie.com/embed/'+b.dataset.id+'?autoplay=1';f.title=b.dataset.title;f.allow='autoplay; encrypted-media; picture-in-picture';f.allowFullscreen=true;b.replaceWith(f);f.focus();});});
+var toc=document.querySelectorAll('.toc a');if(!toc.length)return;var map={};toc.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+var so=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){toc.forEach(function(a){a.removeAttribute('aria-current');});map[e.target.id].setAttribute('aria-current','true');}});},{rootMargin:'0px 0px -70% 0px'});
+document.querySelectorAll('.toc-m a').forEach(function(a){a.addEventListener('click',function(){a.closest('details').open=false;});});
+document.querySelectorAll('.article h2[id]').forEach(function(h){so.observe(h);});})();
 </script>
 </body>
 </html>

@@ -7,39 +7,52 @@
 <meta name="description" content="A TurtleBot3 that explores a maze it has never seen, builds a map of it with LiDAR, then uses that map to find where it is and drive to a goal.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../assets/css/site.css">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/site.css?v=b985ed0a">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <header class="site-head">
   <div class="edge head-inner">
     <a class="site-name" href="../index.html">Vishesh Konduru</a>
-    <nav class="site-nav"><a href="../index.html">Work</a><a href="../journey.html">Journey</a><a href="../about.html">About</a><a href="../docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
+    <nav class="site-nav"><a href="../index.html" aria-current=page>Work</a><a href="../activities.html">Activities</a><a href="../about.html">About</a><a href="../docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
   </div>
 </header>
-<main>
+<main id="main">
 
-<article class="wrap project-head">
-  <div class="article">
+<article class="wrap chapter">
+  <header class="chapter-head">
+    <p class="crumb"><a href="../index.html">Work</a> / Autonomous Mapping and Localizing Robot</p>
     <h1>Autonomous Mapping and Localizing Robot</h1>
-    <p class="meta">RBE 3002 at WPI, spring 2025. Team project.</p>
     
+    <p class="head-meta">RBE 3002 at WPI, spring 2025. Team project.</p>
+    <p class="head-skills"><span>Skills</span> ROS, SLAM, A*, AMCL, Python</p>
     
-    <p>The robot is dropped into a maze with no map. It has to explore the whole thing, build a map as it goes, and then, starting from an unknown spot, work out where it is on that map and drive to a goal.</p><figure class="fig "><img src="../assets/img/mapping/maze.jpg" alt="The final maze in simulation." loading="lazy"><figcaption>The final maze in simulation.</figcaption></figure><h2>Exploring</h2><p>To decide where to go next, the robot looks for frontiers: the edges between space it has already mapped and space it hasn't. It groups nearby frontier cells together, picks a group using its centre, and drives there. When there are no frontiers left, the map is done.</p><h2>Mapping and planning</h2><p>The map is an occupancy grid built with LiDAR SLAM. We tried two mapping back ends, gmapping and Cartographer. Paths are planned with A* on the grid. The robot drives them without blocking the rest of the program, so it can keep updating the map while it moves.</p><h2>Finding itself</h2><p>In the last phase the robot is placed somewhere in the finished maze and uses AMCL, a particle filter, to figure out where it is before driving to the goal.</p><figure class="fig "><img src="../assets/img/mapping/world.jpg" alt="The test world used during development." loading="lazy"><figcaption>The test world used during development.</figcaption></figure><figure class="fig"><div class="todo">Photo or video of the real robot</div></figure>
+  </header>
+  <link rel="stylesheet" href="../assets/3d/demo-shell.css?v=17da5ad1"><script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/","../assets/3d/arm/arm-demo.js":"../assets/3d/arm/arm-demo.js?v=29149714","../assets/3d/arm/ik.js":"../assets/3d/arm/ik.js?v=992c2c36","../assets/3d/arm/ttt.js":"../assets/3d/arm/ttt.js?v=fb8b91ac","../assets/3d/arm/vision.js":"../assets/3d/arm/vision.js?v=9a1b6d14","../assets/3d/demo-shell.js":"../assets/3d/demo-shell.js?v=410f6225","../assets/3d/mqp/percep.js":"../assets/3d/mqp/percep.js?v=2b141957","../assets/3d/mqp/perception.js":"../assets/3d/mqp/perception.js?v=d49de310","../assets/3d/mqp/viewer.js":"../assets/3d/mqp/viewer.js?v=d338984f","../assets/3d/robots/robot-viewer.js":"../assets/3d/robots/robot-viewer.js?v=d7ee55ab","../assets/3d/turtlebot/embed.js":"../assets/3d/turtlebot/embed.js?v=3ea7d3bf","../assets/3d/turtlebot/loc.js":"../assets/3d/turtlebot/loc.js?v=9e59cd54","../assets/3d/turtlebot/main.js":"../assets/3d/turtlebot/main.js?v=0960cc4c","../assets/3d/turtlebot/sim.js":"../assets/3d/turtlebot/sim.js?v=b135e449","../assets/3d/ur5e/plan-worker.js":"../assets/3d/ur5e/plan-worker.js?v=6989a50b","../assets/3d/ur5e/planner.js":"../assets/3d/ur5e/planner.js?v=fa65f58e","../assets/3d/ur5e/plots.js":"../assets/3d/ur5e/plots.js?v=d2ce7c6a","../assets/3d/ur5e/robot.js":"../assets/3d/ur5e/robot.js?v=e1883e5d","../assets/3d/ur5e/sim.js":"../assets/3d/ur5e/sim.js?v=ef71db94","../assets/3d/ur5e/ur5e-demo.js":"../assets/3d/ur5e/ur5e-demo.js?v=9f4c2a2b","../assets/3d/ur5e/ur5e-model.js":"../assets/3d/ur5e/ur5e-model.js?v=830354b7"}}</script><div class="live" id="live-demo" data-demo="../assets/3d/turtlebot/embed.js?v=3ea7d3bf" data-lite='{"label":"TurtleBot mapping and localizing in a maze","loops":[{"label":"Autonomous mapping","w":1280,"h":700,"mp4":"../assets/lite/tb3_map.mp4?v=d88cae0d","av1":"../assets/lite/tb3_map_av1.mp4?v=db2cead9","poster":"../assets/lite/tb3_map.jpg?v=ffdfca10"},{"label":"Autonomous localization","w":1280,"h":700,"mp4":"../assets/lite/tb3_loc.mp4?v=36740d85","av1":"../assets/lite/tb3_loc_av1.mp4?v=67affda0","poster":"../assets/lite/tb3_loc.jpg?v=794ec61d"}]}'><h2 class="live-head" id="try-it-live">Try it live</h2><div class="live-fig"><div data-tb3></div></div></div>
+  <div class="chapter-body">
+    <aside class="toc-col"><nav class="toc" aria-label="Sections"><p>On this page</p><ol><li><a href="#exploring">Exploring</a></li><li><a href="#mapping-and-planning">Mapping and planning</a></li><li><a href="#finding-itself">Finding itself</a></li></ol></nav></aside>
+    <div class="article">
+    <details class="toc-m"><summary>On this page</summary><ol><li><a href="#exploring">Exploring</a></li><li><a href="#mapping-and-planning">Mapping and planning</a></li><li><a href="#finding-itself">Finding itself</a></li></ol></details>
+    <p>The robot is dropped into a maze with no map. It has to explore the whole thing, build a map as it goes, and then, starting from an unknown spot, work out where it is on that map and drive to a goal.</p><figure class="fig "><img src="../assets/img/mapping/maze.jpg" alt="The final maze in simulation." decoding="async" width="1392" height="997"><figcaption>The final maze in simulation.</figcaption></figure><h2 id="exploring">Exploring</h2><p>To decide where to go next, the robot looks for frontiers: the edges between space it has already mapped and space it hasn't. It groups nearby frontier cells together, picks a group using its centre, and drives there. When there are no frontiers left, the map is done.</p><h2 id="mapping-and-planning">Mapping and planning</h2><p>The map is an occupancy grid built with LiDAR SLAM. We tried two mapping back ends, gmapping and Cartographer. Paths are planned with A* on the grid. The robot drives them without blocking the rest of the program, so it can keep updating the map while it moves.</p><h2 id="finding-itself">Finding itself</h2><p>In the last phase the robot is placed somewhere in the finished maze and uses AMCL, a particle filter, to figure out where it is before driving to the goal.</p><figure class="fig "><img src="../assets/img/mapping/world.jpg" alt="The test world used during development." decoding="async" loading="lazy" width="1642" height="1264"><figcaption>The test world used during development.</figcaption></figure><figure class="fig"><div class="todo">Coming soon</div></figure>
+    </div>
   </div>
 </article>
 <section><div class="wrap pager">
-  <a href="rbe3001.html">&larr; RBE-3001 Final Project</a>
-  <a href="tables4u.html">Tables4U &rarr;</a>
+  <a href="ur5e.html"><span>Previous</span>&larr; Dynamic Control of a 6-DOF Robot Arm</a>
+  <a class="back" href="../index.html">Back to Work</a>
+  <a href="tables4u.html"><span>Next</span>Tables4U &rarr;</a>
 </div></section>
 
 </main>
+<p class="wip">Work in progress</p>
 <footer class="site-foot">
   <div class="wrap">
     <span>Vishesh Konduru</span>
     <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
   </div>
 </footer>
+<script src="../assets/js/lite.js?v=f8592264"></script>
 <script>
 (function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
 function go(){if(!done){done=true;hero.classList.add('go');}}
@@ -50,6 +63,18 @@ setTimeout(go,2500);})();
 (function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
 if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
 f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+(function(){if(!('IntersectionObserver' in window))return;
+var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(!still){var els=document.querySelectorAll('main > section .wrap > *, .article > *, .stop, .entry');
+var ro=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});
+els.forEach(function(el){if(el.getBoundingClientRect().top>innerHeight){el.classList.add('rv');ro.observe(el);}});}
+var vo=new IntersectionObserver(function(es){es.forEach(function(e){var v=e.target;if(e.isIntersecting){if(!still||v.closest('.hero')){var p=v.play();if(p&&p.catch)p.catch(function(){});}}else v.pause();});},{rootMargin:'200px'});
+document.querySelectorAll('video[autoplay]').forEach(function(v){if(still&&!v.closest('.hero')){v.removeAttribute('autoplay');v.pause();v.controls=true;}vo.observe(v);});
+document.querySelectorAll('.yt').forEach(function(b){b.addEventListener('click',function(){var f=document.createElement('iframe');f.className='short';f.src='https://www.youtube-nocookie.com/embed/'+b.dataset.id+'?autoplay=1';f.title=b.dataset.title;f.allow='autoplay; encrypted-media; picture-in-picture';f.allowFullscreen=true;b.replaceWith(f);f.focus();});});
+var toc=document.querySelectorAll('.toc a');if(!toc.length)return;var map={};toc.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+var so=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){toc.forEach(function(a){a.removeAttribute('aria-current');});map[e.target.id].setAttribute('aria-current','true');}});},{rootMargin:'0px 0px -70% 0px'});
+document.querySelectorAll('.toc-m a').forEach(function(a){a.addEventListener('click',function(){a.closest('details').open=false;});});
+document.querySelectorAll('.article h2[id]').forEach(function(h){so.observe(h);});})();
 </script>
 </body>
 </html>

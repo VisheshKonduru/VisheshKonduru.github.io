@@ -7,20 +7,21 @@
 <meta name="description" content="Vishesh Konduru, robotics engineering student at WPI.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/site.css">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/site.css?v=b985ed0a">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 <header class="site-head">
   <div class="edge head-inner">
     <a class="site-name" href="index.html">Vishesh Konduru</a>
-    <nav class="site-nav"><a href="index.html">Work</a><a href="journey.html">Journey</a><a href="about.html" aria-current=page>About</a><a href="docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
+    <nav class="site-nav"><a href="index.html">Work</a><a href="activities.html">Activities</a><a href="about.html" aria-current=page>About</a><a href="docs/Vishesh_Konduru_Resume.pdf">Resume</a></nav>
   </div>
 </header>
-<main>
+<main id="main">
 
 <div class="wrap about-top body-grid">
-  <img class="portrait" src="assets/img/me.jpg" alt="Vishesh Konduru">
+  <img class="portrait" src="assets/img/me.jpg" alt="Vishesh Konduru" decoding="async" width="800" height="1000">
   <div>
     <h1>About me</h1>
     <div class="prose">
@@ -31,7 +32,7 @@
 </div>
 <section>
   <div class="wrap body-grid">
-    <h2 class="label">Coursework</h2>
+    <h2 class="label" id="coursework">Coursework</h2>
     <div class="prose">
       <p><strong>Graduate:</strong> Robot Dynamics, Robot Control, Swarm Intelligence, Biomedical Robotics, Imaging for Medical Robotics.</p>
       <p><strong>Undergraduate:</strong> Unified Robotics I to IV, Control Engineering, Embedded Systems, Algorithms, Software Engineering, Object-Oriented Design, Intro to AI.</p>
@@ -40,7 +41,7 @@
 </section>
 <section>
   <div class="wrap body-grid">
-    <h2 class="label">Outside class</h2>
+    <h2 class="label" id="outside-class">Outside class</h2>
     <div class="prose">
       <p>I've volunteered more than 400 hours at VEX, FRC, FTC and FLL competitions. I also play in orchestra at WPI, and did in high school.</p>
       <div class="gallery"><figure class="figure "><div class="todo">Photo: orchestra</div></figure><figure class="figure "><div class="todo">Photo: volunteering at a competition</div></figure></div>
@@ -49,7 +50,7 @@
 </section>
 <section>
   <div class="wrap body-grid">
-    <h2 class="label">Contact</h2>
+    <h2 class="label" id="contact">Contact</h2>
     <div class="links">
       <a class="local" href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a>
       <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a>
@@ -60,12 +61,14 @@
 </section>
 
 </main>
+<p class="wip">Work in progress</p>
 <footer class="site-foot">
   <div class="wrap">
     <span>Vishesh Konduru</span>
     <span><a href="mailto:vishesh-konduru@outlook.com">vishesh-konduru@outlook.com</a> &nbsp;·&nbsp; <a href="https://www.linkedin.com/in/visheshkonduru">LinkedIn</a> &nbsp;·&nbsp; <a href="https://github.com/VisheshKonduru">GitHub</a></span>
   </div>
 </footer>
+<script src="assets/js/lite.js?v=f8592264"></script>
 <script>
 (function(){var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
 function go(){if(!done){done=true;hero.classList.add('go');}}
@@ -76,6 +79,18 @@ setTimeout(go,2500);})();
 (function(){var h=document.querySelector('.site-head'),hero=document.querySelector('.hero');
 if(!h||!hero)return;function f(){h.classList.toggle('solid',hero.getBoundingClientRect().bottom<=h.offsetHeight);}
 f();addEventListener('scroll',f,{passive:true});addEventListener('resize',f);})();
+(function(){if(!('IntersectionObserver' in window))return;
+var still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(!still){var els=document.querySelectorAll('main > section .wrap > *, .article > *, .stop, .entry');
+var ro=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');ro.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});
+els.forEach(function(el){if(el.getBoundingClientRect().top>innerHeight){el.classList.add('rv');ro.observe(el);}});}
+var vo=new IntersectionObserver(function(es){es.forEach(function(e){var v=e.target;if(e.isIntersecting){if(!still||v.closest('.hero')){var p=v.play();if(p&&p.catch)p.catch(function(){});}}else v.pause();});},{rootMargin:'200px'});
+document.querySelectorAll('video[autoplay]').forEach(function(v){if(still&&!v.closest('.hero')){v.removeAttribute('autoplay');v.pause();v.controls=true;}vo.observe(v);});
+document.querySelectorAll('.yt').forEach(function(b){b.addEventListener('click',function(){var f=document.createElement('iframe');f.className='short';f.src='https://www.youtube-nocookie.com/embed/'+b.dataset.id+'?autoplay=1';f.title=b.dataset.title;f.allow='autoplay; encrypted-media; picture-in-picture';f.allowFullscreen=true;b.replaceWith(f);f.focus();});});
+var toc=document.querySelectorAll('.toc a');if(!toc.length)return;var map={};toc.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+var so=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){toc.forEach(function(a){a.removeAttribute('aria-current');});map[e.target.id].setAttribute('aria-current','true');}});},{rootMargin:'0px 0px -70% 0px'});
+document.querySelectorAll('.toc-m a').forEach(function(a){a.addEventListener('click',function(){a.closest('details').open=false;});});
+document.querySelectorAll('.article h2[id]').forEach(function(h){so.observe(h);});})();
 </script>
 </body>
 </html>

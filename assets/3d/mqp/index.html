@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MQP robot viewer dev harness</title>
+<!-- Dev harness only, never linked. The real embed lives on the project page (tools/projects_content.py). -->
+<style>
+:root { --paper:#faf8f4; --ink:#16171a; --ink-2:#3d4047; --rule:#dedad2; --frame:#eeebe4; --accent:#1f5fae; --mark:#0f8b8d; }
+@media (prefers-color-scheme: dark) { :root { --paper:#121314; --ink:#eeece7; --ink-2:#c9c8c3; --rule:#2d2f33; --frame:#1d1f21; --accent:#8db8f2; --mark:#4fb8b9; } }
+body { margin:0; background:var(--paper); color:var(--ink); font:17px/1.6 system-ui, sans-serif; }
+main { max-width:1180px; margin:24px auto; padding:0 20px; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<main><div data-mqp3d></div></main>
+<script type="module" src="viewer.js"></script>
+</body>
+</html>

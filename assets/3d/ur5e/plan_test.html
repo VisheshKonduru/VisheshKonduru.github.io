@@ -1,0 +1,6 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>:root{--paper:#faf8f4;--ink:#16171a;--ink-2:#3d4047;--ink-3:#5f646c;--rule:#dedad2;--frame:#eeebe4;--mark:#0f8b8d}body{margin:0;background:var(--paper);color:var(--ink);font:18px/1.55 Geist,sans-serif}main{max-width:1040px;margin:24px auto;padding:0 20px}</style>
+<link rel="stylesheet" href="ur5e.css"><script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }</script></head>
+<body><main><div data-ur5e3d data-mode="plan"></div></main><script type="module" src="ur5e-demo.js"></script>
+<script>const W=+(new URLSearchParams(location.search).get('w')||2500);setTimeout(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent==='Plan and move').click()},1500);
+if(location.search.includes('push'))setTimeout(()=>{[...document.querySelectorAll('button')].find(b=>b.textContent==='Push the tool').click()},W);</script></body></html>
