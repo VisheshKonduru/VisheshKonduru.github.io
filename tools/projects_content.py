@@ -139,7 +139,7 @@ PROJECTS = [
         ],
         links=[("Paper on OpenReview", "https://openreview.net/forum?id=QrZdMrLP5X"),
                ("NeurIPS 2026", "https://neurips.cc/Conferences/2026"),
-               ("Heimdall on GitHub", "https://github.com/CAVALL-ORG/Heimdall"),
+               ("Old early version of Heimdall on GitHub, not the version tested in the paper", "https://github.com/CAVALL-ORG/Heimdall"),
                ("Cavall", "https://www.cavall.ai/")],
     ),
     dict(
