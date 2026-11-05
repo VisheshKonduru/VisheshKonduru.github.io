@@ -51,7 +51,7 @@ def page(title, body, current, depth=0, description=""):
 <main id="main">
 {body}
 </main>
-<div class="wip-box"><p class="wip">Work in progress</p><a class="feedback" href="mailto:vishesh-konduru@outlook.com?subject=Portfolio%20feedback">Feedback</a></div>
+<div class="wip-box"><p class="wip">Work in progress</p><a class="feedback" href="mailto:vishesh-konduru@outlook.com?subject=Portfolio%20feedback" data-to="vishesh-konduru@outlook.com">Feedback</a></div>
 <footer class="site-foot">
   <div class="wrap">
     <span>Vishesh Konduru</span>
@@ -59,6 +59,7 @@ def page(title, body, current, depth=0, description=""):
   </div>
 </footer>
 <script src="{up}assets/js/lite.js"></script>
+<script src="{up}assets/js/feedback.js" defer></script>
 <script>
 (function(){{var hero=document.querySelector('.hero');if(!hero)return;var v=hero.querySelector('video'),done=false;
 function go(){{if(!done){{done=true;hero.classList.add('go');}}}}

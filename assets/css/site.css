@@ -417,6 +417,21 @@ dialog.lb img { max-width: calc(100vw - 48px); max-height: calc(100vh - 96px); w
 .feedback { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 14px; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); border-radius: 4px; font-size: 14px; font-weight: 600; text-decoration: none; }
 .feedback:hover { background: var(--ink); color: var(--paper); }
 .feedback:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.fb { width: min(480px, calc(100vw - 32px)); padding: 0; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink); }
+.fb::backdrop { background: rgba(0,0,0,.45); }
+.fb-form { display: flex; flex-direction: column; gap: 6px; padding: 24px; }
+.fb-form h2 { margin: 0 0 8px; font-size: 22px; }
+.fb-form label { font-size: 15px; font-weight: 600; margin-top: 8px; }
+.fb-form label span { font-weight: 400; }
+.fb-form input, .fb-form textarea { font: inherit; font-size: 16px; color: var(--ink); background: var(--paper); border: 1px solid var(--ink); border-radius: 4px; padding: 10px 12px; min-height: 44px; }
+.fb-form textarea { resize: vertical; }
+.fb-hp { position: absolute; left: -9999px; width: 1px; height: 1px; }
+.fb-status { min-height: 1.4em; margin: 8px 0 0; font-size: 15px; }
+.fb-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+.fb-actions button { font: inherit; font-size: 15px; font-weight: 600; min-height: 44px; padding: 0 18px; border-radius: 4px; border: 1px solid var(--ink); background: var(--paper); color: var(--ink); cursor: pointer; }
+.fb-actions .fb-send { background: var(--ink); color: var(--paper); }
+.fb-actions button:disabled { opacity: .5; cursor: default; }
+@media (prefers-reduced-motion: no-preference) { .fb[open] { animation: fb-in .18s ease-out; } @keyframes fb-in { from { opacity: 0; transform: translateY(8px); } } }
 /* On phones the box sits at the end of the page instead of over the demo controls. */
 @media (max-width: 720px) { .wip-box { position: static; width: max-content; margin: 0 var(--pad) 16px auto; } }
 
