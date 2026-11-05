@@ -66,11 +66,11 @@ ACTIVITIES = [
     dict(
         id="orchestra", label="Orchestra", title="Orchestra",
         years="Sixth grade to now: middle school, Klein High School and WPI",
-        role="Violin", honors=["First place, Festival Disney, 2019 to 2020", "Region 9 Philharmonic Orchestra, 2022", "Performed at the 75th Midwest Clinic International Band and Orchestra Conference, Chicago, December 17, 2021"],
+        role="Violin", honors=["Grand Champion, Festival Disney, Orlando, 2019 to 2020", "Region 9 Philharmonic Orchestra, 2022", "Performed at the 75th Midwest Clinic International Band and Orchestra Conference, Chicago, December 17, 2021"],
         text=(
             "<p>I have played violin since sixth grade, in orchestra through middle school and high school and now in the WPI Orchestra.</p>"
             "<p>With the Klein High School Chamber Orchestra, conducted by Creston Herron, I performed at the 75th annual <a href='https://www.midwestclinic.org/midwest-clinic-performing-organization?gid=4864&amp;pyear=2021'>Midwest Clinic International Band and Orchestra Conference</a> at McCormick Place in Chicago on December 17, 2021. The concert was released by Mark Records as <a href='https://open.spotify.com/album/6imbxGOJWm5n9EEnIwxcQD'>2021 Midwest Clinic: Klein High School Chamber Orchestra (Live)</a>. "
-            "Leading up to the clinic and in Chicago, we worked with the composers Soon Hee Newbold, Yukiko Nishimura and Javier Pinell. In 2019 to 2020 our high school orchestra won first place at Festival Disney, and in 2022 I played in the Region 9 Philharmonic Orchestra, performing with Kirt Mosier.</p>"
+            "Leading up to the clinic and in Chicago, we worked with the composers Soon Hee Newbold, Yukiko Nishimura and Javier Pinell. In 2019 to 2020 our high school orchestra was named Grand Champion at Festival Disney in Orlando, and in 2022 I played in the Region 9 Philharmonic Orchestra, performing with Kirt Mosier.</p>"
         ),
         cover=("assets/img/activities/orchestra_young.jpg", "Me playing violin when I was younger."),
         more=[("img", "assets/img/activities/orchestra_wpi.jpg", "Playing violin in a string section, left."),
