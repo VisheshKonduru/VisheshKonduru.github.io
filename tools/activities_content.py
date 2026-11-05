@@ -11,7 +11,7 @@ ACTIVITIES = [
     dict(
         id="vex-u", label="VEX U", title="WPI VEX U Robotics",
         years="April 2023 to now",
-        role="Secretary, marketing chair, build lead, driver and programmer",
+        role="Secretary, marketing head, build lead, driver and programmer",
         honors=["Competed at the VEX U World Championship"],
         text=(
             "<p>I lead the construction and programming of our robots. I organized our tasks with agile and scrum, "
