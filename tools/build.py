@@ -5,6 +5,9 @@ Run:  python tools/build.py
 Output is plain HTML in the repo root and projects/. GitHub Pages serves it as is.
 Edit text here, not in the generated .html files, or your edits will be overwritten.
 """
+import hashlib
+import json
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -432,9 +435,38 @@ def _dims(html, base):
     return html
 
 
+def _ver(p):
+    """Short content hash, so a changed file gets a new URL and an unchanged one keeps its cache."""
+    return hashlib.sha1(p.read_bytes()).hexdigest()[:8]
+
+
+def _bust(html, base):
+    """Appends ?v=<hash> to local CSS and JS links (href, src, data-demo). On pages with an import
+    map, also maps every demo module under assets/3d to its versioned URL, so relative imports
+    inside the modules are refreshed too."""
+    def ver(m):
+        url = m.group(2)
+        p = (base / url).resolve()
+        if url.startswith(("http:", "https:", "//")) or not p.is_file():
+            return m.group(0)
+        return f'{m.group(1)}="{url}?v={_ver(p)}"'
+    html = re.sub(r'\b(href|src|data-demo)="([^"?#:]+\.(?:css|js))"', ver, html)
+
+    def imap(m):
+        data = json.loads(m.group(1))
+        for p in sorted((ROOT / "assets" / "3d").rglob("*.js")):
+            rel = os.path.relpath(p, base).replace(os.sep, "/")
+            if not rel.startswith("."):
+                rel = "./" + rel
+            data["imports"][rel] = f"{rel}?v={_ver(p)}"
+        return f'<script type="importmap">{json.dumps(data, separators=(",", ":"))}</script>'
+    return re.sub(r'<script type="importmap">(.*?)</script>', imap, html, flags=re.S)
+
+
 def write(path, html):
     a, b = html.index("<main"), html.index("</main>")
     html = html[:a] + _dims(html[a:b], path.parent) + html[b:]
+    html = _bust(html, path.parent)
     path.write_text(html, encoding="utf-8")
 
 
