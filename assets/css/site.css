@@ -88,6 +88,7 @@ body:has(.hero) .site-head.solid .site-nav a[aria-current="page"] { color: var(-
 .hero-block span + span { color: rgba(255,255,255,.88); }
 .hero-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px 24px; margin-top: 24px; font-size: 16px; }
 .hero-links a { color: #fff; text-underline-offset: 5px; text-decoration-color: rgba(255,255,255,.5); }
+.hero-block a { color: #fff; text-underline-offset: 5px; text-decoration-color: rgba(255,255,255,.5); }
 /* reveal synced to the reel (JS adds .go) */
 .hero-live { display: inline-flex; align-items: center; min-height: 44px; margin-top: 20px; padding: 0 20px; border: 1.5px solid #fff; border-radius: 6px; color: #fff; font-size: 17px; font-weight: 500; text-decoration: none; }
 .hero-live:hover { background: #fff; color: #111; }
